@@ -7,8 +7,10 @@ HEADERS = {"X-N8N-API-KEY": N8N_KEY, "Content-Type": "application/json"}
 WEBHOOK_ID = "sentinel-test-trigger-001"
 
 collector = open('/tmp/collector.js').read()
+recall = open('/tmp/recall_yesterday.js').read()
 build_prompt = open('/tmp/build_prompt.js').read()
-format_msg = open('/tmp/format_msg.js').read()
+parse_output = open('/tmp/parse_output.js').read()
+execute_cleaning = open('/tmp/execute_cleaning.js').read()
 slack_send = open('/tmp/slack_send.js').read()
 
 date_code = """const now = new Date();
@@ -37,30 +39,36 @@ nodes = [
      "typeVersion": 2, "position": [260, 300], "parameters": {"jsCode": date_code}},
     {"id": "collect-all", "name": "Collect All Sources", "type": "n8n-nodes-base.code",
      "typeVersion": 2, "position": [520, 300], "parameters": {"jsCode": collector}},
-    {"id": "build-prompt", "name": "Build AI Prompt", "type": "n8n-nodes-base.code",
-     "typeVersion": 2, "position": [780, 300], "parameters": {"jsCode": build_prompt}},
-    {"id": "claude-chain", "name": "Claude: Synthesize", "type": "@n8n/n8n-nodes-langchain.chainLlm",
-     "typeVersion": 1.4, "position": [1040, 300],
+    {"id": "recall", "name": "Recall Yesterday", "type": "n8n-nodes-base.code",
+     "typeVersion": 2, "position": [780, 300], "parameters": {"jsCode": recall}},
+    {"id": "build-prompt", "name": "Build Analyst Prompt", "type": "n8n-nodes-base.code",
+     "typeVersion": 2, "position": [1040, 300], "parameters": {"jsCode": build_prompt}},
+    {"id": "claude-chain", "name": "Sentinel Analyst", "type": "@n8n/n8n-nodes-langchain.chainLlm",
+     "typeVersion": 1.4, "position": [1300, 300],
      "parameters": {"promptType": "define", "text": "={{ $json.prompt }}"}},
     {"id": "claude-model", "name": "Claude Model", "type": "@chrishdx/n8n-nodes-claude-cli.lmChatClaudeCli",
-     "typeVersion": 1, "position": [1040, 500],
-     "parameters": {"model": "claude-sonnet-4-6", "conversationMode": "stateless", "options": {"maxTokensToSample": 2200}},
+     "typeVersion": 1, "position": [1300, 500],
+     "parameters": {"model": "claude-sonnet-4-6", "conversationMode": "stateless", "options": {"maxTokensToSample": 3000}},
      "credentials": {"claudeCliApi": {"id": "xEpaYqT9ncGcZwHj", "name": "Tunahan Chatbot · Claude CLI"}}},
-    {"id": "format-msg", "name": "Format Message", "type": "n8n-nodes-base.code",
-     "typeVersion": 2, "position": [1300, 300], "parameters": {"jsCode": format_msg}},
+    {"id": "parse-output", "name": "Parse Analyst Output", "type": "n8n-nodes-base.code",
+     "typeVersion": 2, "position": [1560, 300], "parameters": {"jsCode": parse_output}},
+    {"id": "execute-cleaning", "name": "Execute Mail Cleaning", "type": "n8n-nodes-base.code",
+     "typeVersion": 2, "position": [1820, 300], "parameters": {"jsCode": execute_cleaning}},
     {"id": "slack-send", "name": "Send to Cem", "type": "n8n-nodes-base.code",
-     "typeVersion": 2, "position": [1560, 300], "parameters": {"jsCode": slack_send}},
+     "typeVersion": 2, "position": [2080, 300], "parameters": {"jsCode": slack_send}},
 ]
 
 connections = {
     "Daily 07:00 Istanbul": {"main": [[{"node": "Set Date Range", "type": "main", "index": 0}]]},
     "Webhook Test Trigger": {"main": [[{"node": "Set Date Range", "type": "main", "index": 0}]]},
     "Set Date Range": {"main": [[{"node": "Collect All Sources", "type": "main", "index": 0}]]},
-    "Collect All Sources": {"main": [[{"node": "Build AI Prompt", "type": "main", "index": 0}]]},
-    "Build AI Prompt": {"main": [[{"node": "Claude: Synthesize", "type": "main", "index": 0}]]},
-    "Claude Model": {"ai_languageModel": [[{"node": "Claude: Synthesize", "type": "ai_languageModel", "index": 0}]]},
-    "Claude: Synthesize": {"main": [[{"node": "Format Message", "type": "main", "index": 0}]]},
-    "Format Message": {"main": [[{"node": "Send to Cem", "type": "main", "index": 0}]]},
+    "Collect All Sources": {"main": [[{"node": "Recall Yesterday", "type": "main", "index": 0}]]},
+    "Recall Yesterday": {"main": [[{"node": "Build Analyst Prompt", "type": "main", "index": 0}]]},
+    "Build Analyst Prompt": {"main": [[{"node": "Sentinel Analyst", "type": "main", "index": 0}]]},
+    "Claude Model": {"ai_languageModel": [[{"node": "Sentinel Analyst", "type": "ai_languageModel", "index": 0}]]},
+    "Sentinel Analyst": {"main": [[{"node": "Parse Analyst Output", "type": "main", "index": 0}]]},
+    "Parse Analyst Output": {"main": [[{"node": "Execute Mail Cleaning", "type": "main", "index": 0}]]},
+    "Execute Mail Cleaning": {"main": [[{"node": "Send to Cem", "type": "main", "index": 0}]]},
 }
 
 settings = {"saveExecutionProgress": True, "saveManualExecutions": True, "saveDataErrorExecution": "all",
@@ -85,8 +93,8 @@ if not act.json().get("active"):
 time.sleep(3)
 wh = requests.get(f"{BASE}/webhook/{WEBHOOK_ID}", timeout=30)
 print("Webhook:", wh.status_code)
-print("Waiting for collection + AI synthesis (~90s)...")
-time.sleep(90)
+print("Waiting for collect + recall + analyst + cleaning (~110s)...")
+time.sleep(110)
 
 execs = requests.get(f"{BASE}/api/v1/executions?workflowId={WF_ID}&limit=1", headers=HEADERS).json()
 ex = execs["data"][0] if execs.get("data") else {}

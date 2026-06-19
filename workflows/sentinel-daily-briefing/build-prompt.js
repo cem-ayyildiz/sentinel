@@ -1,31 +1,42 @@
-// ===== Build AI Prompt from collected data =====
+// ===== Build Analyst Prompt — deep, multi-pass reasoning over all collected data =====
 const d = $input.first().json;
 
-const fmtEmails = (arr) => (arr && arr.length)
-  ? arr.map(e => `- ${e.unread ? '🔵 ' : ''}${e.starred ? '⭐ ' : ''}${e.important ? '❗ ' : ''}*${e.subject}* | from ${e.from}\n  ${e.snippet}`).join('\n')
-  : '_none_';
+// ---- Number emails with stable tags so the model can reference them for archiving ----
+const emailIndex = {};   // tag -> { account, id }
+const renderEmails = (arr, prefix, account) => {
+  if (!arr || !arr.length) return '_none_';
+  return arr.map((e, i) => {
+    const tag = `${prefix}${i + 1}`;
+    emailIndex[tag] = { account, id: e.id };
+    const flags = [
+      e.unread ? 'unread' : 'read',
+      e.starred ? '⭐starred' : '',
+      e.important ? '❗important' : '',
+      e.category !== 'primary' ? e.category : '',
+      e.bulk ? 'bulk/newsletter' : '',
+      e.automated ? 'automated/no-reply' : '',
+    ].filter(Boolean).join(', ');
+    return `[${tag}] *${e.subject}* — from ${e.from}\n     (${flags})\n     ${e.snippet}`;
+  }).join('\n');
+};
+const emailsFsBlock = renderEmails(d.emailsFs, 'FS', 'fs');
+const emailsGohmBlock = renderEmails(d.emailsGohm, 'GO', 'gohm');
 
 const fmtEvents = (arr) => (arr && arr.length)
   ? arr.map(e => `- ${e.start.substring(0, 16).replace('T', ' ')} — *${e.summary}*${e.location ? ' @ ' + e.location : ''}${e.attendees ? ' | with: ' + e.attendees : ''}`).join('\n')
   : '_none_';
 
-const fmtTasks = (arr) => (arr && arr.length)
-  ? arr.map(t => `- [${t.priority}] *${t.name}* | due ${t.due} | ${t.space}${t.status ? ' | ' + t.status : ''}`).join('\n')
-  : '_none_';
-
-const fmtSlack = (arr) => {
-  if (!arr || !arr.length) return '_no channels read_';
-  return arr.map(c => {
-    if (!c.count) return `*#${c.channel}*: quiet (no activity)`;
-    return `*#${c.channel}* (${c.count} msgs):\n${c.messages.map(m => '  · ' + m).join('\n')}`;
-  }).join('\n\n');
-};
-
 const fmtNotes = (arr) => (arr && arr.length)
   ? arr.map(n => `### ${n.title}\n${n.summary}`).join('\n\n')
   : '_no meeting notes since yesterday_';
 
-// Team activity per project (space)
+const fmtSlack = (arr) => {
+  if (!arr || !arr.length) return '_no channels read_';
+  return arr.filter(c => c.count > 0).map(c =>
+    `*#${c.channel}*${c.priv ? ' 🔒' : ''} (${c.count}):\n${c.messages.map(m => '  · ' + m).join('\n')}`
+  ).join('\n\n') || '_all channels quiet_';
+};
+
 const fmtActivity = (org) => {
   const a = (d.clickupActivity || []).find(c => c.org === org);
   if (!a || !a.totalUpdated) return '_no task activity in last 48h_';
@@ -36,79 +47,84 @@ const fmtActivity = (org) => {
   }).join('\n');
 };
 
-// Cem's personal overdue
 const cuOver = (org) => (d.clickupOverdue || []).find(c => c.org === org) || { count: 0, tasks: [] };
 const fmtOverdue = (arr) => (arr && arr.length)
   ? arr.map(t => `- [${t.priority}] ${t.name.substring(0, 60)} | due ${t.due} | ${t.space}`).join('\n')
   : '_none_';
 const oFs = cuOver('FreshSens'), oGohm = cuOver('GOHM'), oDiefi = cuOver('DIEFI');
 
-const prompt = `You are Sentinel — the personal chief-of-staff AI for Cem Ayyildiz, who is CTO of FreshSens (deep-tech agritech/post-harvest sensing startup), General Manager of GOHM (telecom/6G R&D company), and a lead on DIEFI (an EU research project). Today is ${d.todayDate}.
+const yesterday = d.yesterdayBriefing
+  ? d.yesterdayBriefing
+  : '_(no prior briefing found — first run)_';
 
-You have his raw inbox, calendars, team Slack, and task boards below. Your job: cut through the noise and produce a sharp, exception-based morning briefing that tells him what actually deserves his attention today across all three hats.
+const prompt = `You are Sentinel — chief-of-staff AI for Cem Ayyildiz: CTO of FreshSens (deep-tech agritech/post-harvest sensing startup), GM of GOHM (telecom/6G R&D), lead on DIEFI (EU research project). Today is ${d.todayDate}.
 
-═══════════════ INBOX — FreshSens (ca@freshsens.ai) ═══════════════
-${fmtEmails(d.emailsFs)}
+You are NOT a summarizer. You are an analyst. Read everything below, then REASON: correlate signals across sources, weigh what matters, track continuity from yesterday, and decide concrete actions. Be specific — real names, subjects, task titles, channel names.
 
-═══════════════ INBOX — GOHM (cem.ayyildiz@gohm.tech) ═══════════════
-${fmtEmails(d.emailsGohm)}
+╔═══════════ YESTERDAY'S BRIEFING (for continuity) ═══════════╗
+${yesterday}
+╚════════════════════════════════════════════════════════════╝
 
-═══════════════ CALENDAR — FreshSens (yesterday → today) ═══════════════
+═══════════ INBOX — FreshSens (ca@freshsens.ai) ═══════════
+${emailsFsBlock}
+
+═══════════ INBOX — GOHM (cem.ayyildiz@gohm.tech) ═══════════
+${emailsGohmBlock}
+
+═══════════ CALENDAR — FreshSens (yesterday → today) ═══════════
 ${fmtEvents(d.calFs)}
 
-═══════════════ CALENDAR — GOHM (yesterday → today) ═══════════════
+═══════════ CALENDAR — GOHM (yesterday → today) ═══════════
 ${fmtEvents(d.calGohm)}
 
-═══════════════ MEETING NOTES — Gemini summaries since yesterday (context for what was discussed/decided) ═══════════════
+═══════════ MEETING NOTES — Gemini summaries since yesterday ═══════════
 ${fmtNotes(d.meetingNotes)}
 
-═══════════════ SLACK — last 24h activity ═══════════════
+═══════════ SLACK — last 24h across ${d.slackChannelCount || '?'} channels (🔒 = private) ═══════════
 ${fmtSlack(d.slack)}
 
-═══════════════ TEAM ACTIVITY — last 48h, per project (✓ = shipped, • = in flight) ═══════════════
+═══════════ TEAM ACTIVITY — last 48h per project (✓ shipped, • in flight) ═══════════
 — FreshSens —
 ${fmtActivity('FreshSens')}
-
 — GOHM —
 ${fmtActivity('GOHM')}
-
 — DIEFI —
 ${fmtActivity('DIEFI')}
 
-═══════════════ OVERDUE — assigned to Cem personally ═══════════════
-— FreshSens [${oFs.count}] —
+═══════════ OVERDUE — assigned to Cem ═══════════
+FreshSens [${oFs.count}]:
 ${fmtOverdue(oFs.tasks)}
-
-— GOHM [${oGohm.count}] —
+GOHM [${oGohm.count}]:
 ${fmtOverdue(oGohm.tasks)}
-
-— DIEFI [${oDiefi.count}] —
+DIEFI [${oDiefi.count}]:
 ${fmtOverdue(oDiefi.tasks)}
 
 ${d.errors && d.errors.length ? '⚠️ Collection issues: ' + d.errors.join('; ') + '\n' : ''}
-═══════════════ YOUR BRIEFING ═══════════════
-Write a briefing with these sections (use Slack markdown — *bold*, not **):
+═══════════════════ PRODUCE THE BRIEFING ═══════════════════
+Write in Slack markdown (*bold*, not **). Sections, in order:
 
-*📌 Today's Schedule* — list today's actual meetings chronologically. Tag EACH meeting with an attendance call:
-   🔴 *Must attend* — your presence is decision-critical (external partners/customers, you're presenting, board/management, escalations, anything where a decision needs you).
-   🟡 *Optional* — useful but delegable; join if time allows.
-   ⚪ *Routine* — recurring standup/daily/sync; skip or just skim the auto-notes.
-   Use the signals: names like "Daily", "Standup", "Sync" + only-internal team = routine; external attendees, demos, partner/customer calls, management = must-attend. Note prep needed, and for time conflicts say which one wins and what to do with the other.
+*🔁 Since Yesterday* — compare to yesterday's briefing. What's STILL OPEN (and now older/riskier), what got RESOLVED, what's NEW today. 3–5 lines. If no prior briefing, say "First run — baseline established."
 
-*🔥 Top Priorities* (max 6) — the few things that truly matter today, pulled from across email/tasks/slack/meeting notes. For each: one line, action-oriented, tagged [FS]/[GOHM]/[DIEFI]. Connect dots (e.g. a decision or action item from yesterday's meeting notes that needs follow-up, an email + an overdue task that relate).
+*📌 Today's Schedule* — each meeting tagged 🔴 must-attend / 🟡 optional / ⚪ routine (routine = internal daily/standup; must-attend = external/partner/customer, you present, decisions). Note prep; resolve time conflicts (say which wins).
 
-*🗣️ From Yesterday's Meetings* — using the Gemini meeting notes, 1 line per meeting: the key decision or the action item that lands on Cem (or that he must chase). Skip routine standups unless something notable came up. If no notes, say so in one line.
+*🔥 Top Priorities* (max 6) — ranked. Each: one action-oriented line, tagged [FS]/[GOHM]/[DIEFI]. CONNECT signals — e.g. an overdue task blocking a customer email, a meeting action that needs a task. Reference the email tag [FS3] when relevant.
 
-*👥 Team Pulse — by project* — this is Cem's window into what his teams are actually doing. For each active project (space) with movement, write 1–2 lines: what shipped (✓), what's in flight, who's driving it, and any project that looks stalled or where one person carries everything. Group under FreshSens / GOHM / DIEFI. Name the projects and people. If an org was quiet, say so in one line.
+*🚨 Issues & Incidents* — correlate the Slack alarms/errors/support signals into INCIDENTS, don't just echo them. For each: severity (🔴/🟠/🟡), what's happening, likely root-cause hypothesis if signals cluster (e.g. several backend 500s + sensors offline = same gateway?), suspected owner, and the next action. Cover #*-alerts, #thingsboard_alarms, #support, #produce_alarms, #operation-alerts, #deployments. If genuinely quiet, say so.
 
-*📨 Emails Needing a Reply* (max 5) — only ones that genuinely need Cem personally. Name the sender and the ask.
+*🗣️ From Yesterday's Meetings* — from the Gemini notes, the decisions/action items that land on Cem or that he must chase. 1 line per meeting; skip routine standups unless notable.
 
-*⚠️ Risks & Signals* (max 4) — blockers, alarms (esp. #thingsboard_alarms / #support), things going sideways, deadlines slipping.
+*👥 Team Pulse — by project* — per active project: what shipped (✓), what's in flight, who's driving, and flag single-person bottlenecks or stalls. Group FS/GOHM/DIEFI.
 
-*✅ Quick Wins* (1–3) — things closable in <15 min.
+*📨 Inbox Triage* — you have ${(d.emailsFs||[]).length + (d.emailsGohm||[]).length} inbox emails above. Give: (a) *Reply needed* (max 6) — emails that genuinely need Cem; name sender + the ask + reference [tag]. (b) *Delegate* — who should own it. (c) *Archive (FYI)* — count + the tags you judge safe to archive (automated/bulk/no-reply/receipts/notifications, NOT starred/important/anything needing a person). List the safe tags.
 
-*📥 Archive Suggestions* — review the two inboxes and list ONLY emails that are purely informational / automated / FYI with no action or reply needed (newsletters, no-reply notifications, system digests, receipts, social/promo that slipped into inbox). For each: \`sender — subject\`. These are CANDIDATES Cem may archive — do NOT include anything starred (⭐), marked important (❗), from a real person addressing him, or that could need a reply. When in doubt, leave it out. If nothing is clearly archivable, say "Nothing safe to auto-archive today." (This is a suggestion list only — nothing is archived yet.)
+*✅ Quick Wins* (1–3) — closable in <15 min.
 
-Rules: Be direct and specific — reference real names, subjects, task titles. No filler, no restating raw data. If a section is genuinely empty, write one line saying so. Separate the three orgs clearly. Hard cap 750 words.`;
+Rules: direct, no filler, no restating raw data. Separate the orgs. Hard cap 850 words for the prose.
 
-return [{ json: { prompt, todayDate: d.todayDate } }];
+After the prose, on a new line, output EXACTLY one fenced JSON block with the machine-actionable decisions (this drives auto-archiving and tomorrow's continuity):
+\`\`\`json
+{"archive_tags": ["FS3","GO5"], "open_issues": ["one-line each: the issues/items that must carry to tomorrow"]}
+\`\`\`
+Only include email tags in archive_tags that are genuinely safe FYI to remove from inbox. Be conservative.`;
+
+return [{ json: { prompt, todayDate: d.todayDate, emailIndex } }];

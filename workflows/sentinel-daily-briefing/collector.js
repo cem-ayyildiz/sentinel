@@ -45,28 +45,44 @@ const header = (msg, name) => {
 // ===== EMAIL (both accounts) =====
 const fetchEmails = async (cid, secret, rt, label) => {
   const token = await googleToken(cid, secret, rt);
-  const q = encodeURIComponent(`after:${dates.yesterdayGmail} -category:promotions -category:social -in:chats`);
+  // Scan the recent inbox (new + recent backlog) so triage has real material to clean.
+  const q = encodeURIComponent('in:inbox');
   const list = await this.helpers.httpRequest({
     method: 'GET',
-    url: `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=12&q=${q}`,
+    url: `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=25&q=${q}`,
     headers: { Authorization: `Bearer ${token}` },
   });
   const listData = typeof list === 'string' ? JSON.parse(list) : list;
   const ids = (listData.messages || []).map(m => m.id);
   const msgs = await Promise.all(ids.map(id => this.helpers.httpRequest({
     method: 'GET',
-    url: `https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date`,
+    url: `https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}?format=metadata`
+      + `&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date&metadataHeaders=List-Unsubscribe`,
     headers: { Authorization: `Bearer ${token}` },
   }).then(r => typeof r === 'string' ? JSON.parse(r) : r).catch(() => null)));
-  return msgs.filter(Boolean).map(m => ({
-    id: m.id,
-    from: header(m, 'From'),
-    subject: header(m, 'Subject') || '(no subject)',
-    snippet: (m.snippet || '').substring(0, 180),
-    unread: (m.labelIds || []).includes('UNREAD'),
-    important: (m.labelIds || []).includes('IMPORTANT'),
-    starred: (m.labelIds || []).includes('STARRED'),
-  }));
+  const catOf = (labels) => {
+    if (labels.includes('CATEGORY_PROMOTIONS')) return 'promotions';
+    if (labels.includes('CATEGORY_SOCIAL')) return 'social';
+    if (labels.includes('CATEGORY_UPDATES')) return 'updates';
+    if (labels.includes('CATEGORY_FORUMS')) return 'forums';
+    return 'primary';
+  };
+  return msgs.filter(Boolean).map(m => {
+    const labels = m.labelIds || [];
+    const from = header(m, 'From');
+    return {
+      id: m.id,
+      from,
+      subject: header(m, 'Subject') || '(no subject)',
+      snippet: (m.snippet || '').substring(0, 220),
+      unread: labels.includes('UNREAD'),
+      important: labels.includes('IMPORTANT'),
+      starred: labels.includes('STARRED'),
+      category: catOf(labels),
+      bulk: !!header(m, 'List-Unsubscribe'),                       // newsletter / bulk sender
+      automated: /no-?reply|noreply|notifications?@|mailer-daemon|donotreply|do-not-reply|@.*\.(atlassian|github|gitlab)\b/i.test(from),
+    };
+  });
 };
 
 try { out.emailsFs = await fetchEmails(FS.id, FS.secret, RT.fsGmail, 'FS'); }
