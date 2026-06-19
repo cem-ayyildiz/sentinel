@@ -1,0 +1,4 @@
+credentials/
+.mcp.json
+.claude/settings.local.json
+.telegram-sessions/
