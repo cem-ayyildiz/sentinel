@@ -2,7 +2,7 @@
 // SAFETY: gated by ARCHIVE_ENABLED. While false, it only PROPOSES (lists what it
 // would archive). Archiving = remove INBOX label + add 'Sentinel/FYI-Archived'
 // (an audit-trail folder). It NEVER deletes — archived mail stays in All Mail.
-const ARCHIVE_ENABLED = false;   // flip to true once Cem is confident
+const ARCHIVE_ENABLED = true;   // enabled by Cem 2026-06-21
 
 const inp = $input.first().json;
 const archive = inp.archive || [];

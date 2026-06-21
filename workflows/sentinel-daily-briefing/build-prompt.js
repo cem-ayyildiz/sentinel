@@ -138,7 +138,7 @@ Write in Slack markdown (*bold*, not **). Start DIRECTLY with the "🔁 Since Ye
 
 *🏠 Personal / Smart Home* — from the Home list: 2–4 lines on what's open (Loxone/smart-home issues + house items), flag anything time-sensitive or that you've been carrying a while.
 
-*📨 Inbox Triage* — you have ${(d.emailsFs||[]).length + (d.emailsGohm||[]).length} inbox emails above. Give: (a) *Reply needed* (max 6) — emails that genuinely need Cem; name sender + the ask + reference [tag]. (b) *Delegate* — who should own it. (c) *Archive (FYI)* — count + the tags you judge safe to archive (automated/bulk/no-reply/receipts/notifications, NOT starred/important/anything needing a person). List the safe tags.
+*📨 Inbox Triage* — you have ${(d.emailsFs||[]).length + (d.emailsGohm||[]).length} inbox emails above. Give: (a) *Reply needed* (max 6) — emails that genuinely need Cem; name sender + the ask + reference [tag]. (b) *Delegate* — who should own it. (c) *Archive (FYI)* — count + the tags you judge safe to archive (automated/bulk/no-reply/receipts/newsletters/promotions/spam digests). NEVER archive: starred/important, anything from a real person, anything needing a reply, OR security/login/account notices (new-device login, password reset, verification codes, payment failures) — those stay in inbox. List the safe tags.
 
 *✅ Quick Wins* (1–3) — closable in <15 min.
 
@@ -148,6 +148,6 @@ After the prose, on a new line, output EXACTLY one fenced JSON block with the ma
 \`\`\`json
 {"archive_tags": ["FS3","GO5"], "open_issues": ["one-line each: the issues/items that must carry to tomorrow"]}
 \`\`\`
-Only include email tags in archive_tags that are genuinely safe FYI to remove from inbox. Be conservative.`;
+Only include email tags in archive_tags that are genuinely safe FYI to remove from inbox (NEVER security/login/account notices). Be conservative.`;
 
 return [{ json: { prompt, todayDate: d.todayDate, emailIndex } }];
