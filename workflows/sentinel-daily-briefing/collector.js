@@ -239,7 +239,16 @@ for (const team of CLICKUP_TEAMS) {
         tasks: [...active, ...completed],
       };
     }).sort((a, b) => (b.active + b.completed) - (a.active + a.completed));
-    out.clickupActivity.push({ org: team.name, totalUpdated: tasks.length, spaces });
+    // Flat task list (name + who + status) so the AI can bucket FreshSens work into the
+    // functional teams (backend/frontend/ML/firmware/hardware/postharvest/ops/sales).
+    const allTasks = tasks.slice(0, 50).map(t => ({
+      name: t.name,
+      status: (t.status || {}).status || '?',
+      done: ((t.status || {}).type === 'closed' || (t.status || {}).type === 'done'),
+      assignee: (t.assignees || []).map(a => a.username).join(', ') || 'unassigned',
+      space: spaceMap[(t.space || {}).id] || (t.list || {}).name || '',
+    }));
+    out.clickupActivity.push({ org: team.name, totalUpdated: tasks.length, spaces, allTasks });
   } catch (e) {
     out.clickupActivity.push({ org: team.name, totalUpdated: 0, spaces: [], error: e.message });
   }
@@ -260,5 +269,19 @@ for (const team of CLICKUP_TEAMS) {
     out.clickupOverdue.push({ org: team.name, count: 0, tasks: [], error: e.message });
   }
 }
+
+// ===== PERSONAL — GOHM ClickUp "Home" space (Loxone smart-home + house items) =====
+try {
+  const url = `https://api.clickup.com/api/v2/team/42085420/task`
+    + `?space_ids%5B%5D=90151309240&include_closed=false&subtasks=true&order_by=updated`;
+  const resp = await this.helpers.httpRequest({ method: 'GET', url, headers: CK });
+  const d = typeof resp === 'string' ? JSON.parse(resp) : resp;
+  out.personal = (d.tasks || []).slice(0, 20).map(t => ({
+    name: t.name,
+    status: (t.status || {}).status || '?',
+    assignee: (t.assignees || []).map(a => a.username).join(', ') || 'unassigned',
+    due: t.due_date ? new Date(parseInt(t.due_date)).toLocaleDateString('en-GB') : '',
+  }));
+} catch (e) { out.personal = []; out.errors.push('Personal: ' + e.message); }
 
 return [{ json: out }];
