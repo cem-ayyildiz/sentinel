@@ -23,14 +23,15 @@ CREATE TABLE IF NOT EXISTS signals (
 CREATE INDEX IF NOT EXISTS signals_org_type_time ON signals (org, type, ingested_at);
 CREATE INDEX IF NOT EXISTS signals_slack_ts ON signals (slack_ts);
 
--- One verdict per surfaced item. The learning source.
+-- One CURRENT decision per surfaced item (upserted). The learning source.
 CREATE TABLE IF NOT EXISTS decisions (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  signal_id     UUID REFERENCES signals(id),
-  verdict       TEXT NOT NULL,            -- do_now|do_later|delegate_person|delegate_agent|watch|skip
+  signal_id     UUID REFERENCES signals(id) UNIQUE,   -- one decision per signal; upsert on conflict
+  verdict       TEXT,                     -- do_now|do_later|delegate_person|delegate_agent|watch|skip (nullable: a reason can land before a verdict)
   delegate_to   TEXT,
-  reason        TEXT,
-  decided_via   TEXT,                     -- slack_reaction|multica_voice|dashboard
+  reason        TEXT,                     -- the WHY — paraphrased from Cem's reply; strongest learning signal
+  raw_input     TEXT,                     -- Cem's exact reply text
+  decided_via   TEXT,                     -- slack_reaction|slack_reply|multica_voice|dashboard
   decided_at    TIMESTAMPTZ DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS decisions_time ON decisions (decided_at DESC);
