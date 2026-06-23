@@ -5,7 +5,6 @@ if (!items.length) return [];
 const post = (text) => this.helpers.httpRequest({ method: 'POST', url: 'https://slack.com/api/chat.postMessage',
   headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
   body: { channel: CH, text, unfurl_links: false, unfurl_media: false }, json: true });
-await post(`🗳️ *Decision Queue* — ${items.length} items. React (👍 now · ⏳ later · 👤 delegate · 🤖 agent · 👀 watch · ❌ skip) or reply with your reason.`);
 const out = [];
 for (const s of items) {
   const m = s.metadata || {};
