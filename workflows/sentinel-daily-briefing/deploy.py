@@ -24,6 +24,17 @@ STORE_BRIEF_P = ("={{ [$('Build Analyst Prompt').first().json.todayDate, "
                  "$('Execute Mail Cleaning').first().json.text, "
                  "JSON.stringify($('Parse Analyst Output').first().json.openIssues||[]) ] }}")
 
+LOAD_QUEUE = (
+  "SELECT id, type, org, title, actor, url, metadata FROM signals "
+  "WHERE ingested_at >= date_trunc('day', now()) AND slack_ts IS NULL AND ("
+  "  (type='email' AND COALESCE((metadata->>'automated')::boolean,false)=false "
+  "                AND COALESCE((metadata->>'bulk')::boolean,false)=false) "
+  "  OR type='task') "
+  "ORDER BY CASE WHEN type='email' AND COALESCE((metadata->>'unread')::boolean,false) THEN 0 "
+  "              WHEN type='task' THEN 1 ELSE 2 END, ingested_at DESC LIMIT 10;")
+UPDATE_TS = "UPDATE signals SET slack_ts=$1 WHERE id=$2;"
+UPDATE_TS_P = "={{ [$json.ts, $json.id] }}"
+
 def code(id_, name, f, pos): return {"id":id_,"name":name,"type":"n8n-nodes-base.code","typeVersion":2,"position":pos,"parameters":{"jsCode":js(f)}}
 def pg(id_, name, query, params, pos):
     p = {"operation":"executeQuery","query":query,"options":{}}
@@ -40,6 +51,9 @@ nodes = [
  code("collect-all","Collect All Sources","collector.js",[470,300]),
  code("emit-sig","Emit Signals","emit_signals.js",[700,120]),
  pg("insert-sig","Insert Signals",INSERT_SIG,INSERT_SIG_P,[930,120]),
+ pg("load-queue","Load Decision Queue",LOAD_QUEUE,None,[1160,120]),
+ code("post-queue","Post Decision Queue","dq_post.js",[1390,120]),
+ pg("update-ts","Update Slack TS",UPDATE_TS,UPDATE_TS_P,[1620,120]),
  pg("load-ctx","Load Context",LOAD_CTX,None,[700,420]),
  code("build-prompt","Build Analyst Prompt","build_prompt.js",[930,420]),
  {"id":"claude-chain","name":"Sentinel Analyst","type":"@n8n/n8n-nodes-langchain.chainLlm","typeVersion":1.4,
@@ -59,6 +73,9 @@ connections = {
  "Set Date Range":{"main":[[{"node":"Collect All Sources","type":"main","index":0}]]},
  "Collect All Sources":{"main":[[{"node":"Emit Signals","type":"main","index":0},{"node":"Load Context","type":"main","index":0}]]},
  "Emit Signals":{"main":[[{"node":"Insert Signals","type":"main","index":0}]]},
+ "Insert Signals":{"main":[[{"node":"Load Decision Queue","type":"main","index":0}]]},
+ "Load Decision Queue":{"main":[[{"node":"Post Decision Queue","type":"main","index":0}]]},
+ "Post Decision Queue":{"main":[[{"node":"Update Slack TS","type":"main","index":0}]]},
  "Load Context":{"main":[[{"node":"Build Analyst Prompt","type":"main","index":0}]]},
  "Build Analyst Prompt":{"main":[[{"node":"Sentinel Analyst","type":"main","index":0}]]},
  "Claude Model":{"ai_languageModel":[[{"node":"Sentinel Analyst","type":"ai_languageModel","index":0}]]},
