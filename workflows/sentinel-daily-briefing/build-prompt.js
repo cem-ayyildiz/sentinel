@@ -1,5 +1,8 @@
 // ===== Build Analyst Prompt — deep, multi-pass reasoning over all collected data =====
-const d = $input.first().json;
+const d = $('Collect All Sources').first().json;
+const ctx = $('Load Context').first().json || {};
+const profile = ctx.profile || { always_skip: [], always_do: [], delegate_map: {} };
+const recentDecisions = ctx.recent_decisions || [];
 
 // ---- Number emails with stable tags so the model can reference them for archiving ----
 const emailIndex = {};   // tag -> { account, id }
@@ -63,9 +66,15 @@ const fmtPersonal = (d.personal && d.personal.length)
   ? d.personal.map(t => `- ${t.name.substring(0, 72)} | ${t.status}${t.due ? ' | due ' + t.due : ''}${t.assignee !== 'unassigned' ? ' | ' + t.assignee : ''}`).join('\n')
   : '_none_';
 
-const yesterday = d.yesterdayBriefing
-  ? d.yesterdayBriefing
-  : '_(no prior briefing found — first run)_';
+const yesterday = (ctx.last_briefing && ctx.last_briefing.prose)
+  ? ctx.last_briefing.prose
+  : '_(no prior briefing yet — first run)_';
+
+// Learning context: how Cem has decided before (grows as decisions are captured).
+const profileStr = JSON.stringify(profile);
+const decisionsStr = recentDecisions.length
+  ? recentDecisions.slice(0, 60).map(r => `- [${r.verdict}] ${r.type}/${r.org || '?'}: ${r.title}${r.reason ? ' — ' + r.reason : ''}`).join('\n')
+  : '_(no decisions captured yet — learning starts once Cem reacts to briefings)_';
 
 const prompt = `You are Sentinel — chief-of-staff AI for Cem Ayyildiz: CTO of FreshSens (deep-tech agritech/post-harvest sensing startup), GM of GOHM (telecom/6G R&D), lead on DIEFI (EU research project). Today is ${d.todayDate}.
 
@@ -79,6 +88,13 @@ ORG MAP — organize the briefing exactly around this structure:
 ╔═══════════ YESTERDAY'S BRIEFING (for continuity) ═══════════╗
 ${yesterday}
 ╚════════════════════════════════════════════════════════════╝
+
+╔═══════════ HOW CEM DECIDES (learned profile + recent verdicts) ═══════════╗
+Profile: ${profileStr}
+Recent decisions:
+${decisionsStr}
+╚════════════════════════════════════════════════════════════╝
+When an inbox email or task closely matches how Cem has decided before, pre-classify it: in Inbox Triage note "(likely <verdict> — matches past)". For high-confidence skips/archives that fit the profile's always_skip, fold them straight into Archive Suggestions without belaboring them.
 
 ═══════════ INBOX — FreshSens (ca@freshsens.ai) ═══════════
 ${emailsFsBlock}

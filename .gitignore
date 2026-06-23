@@ -1,3 +1,6 @@
 credentials/
 .telegram-sessions/
 .mcp.json
+.env
+infra/.env
+infra/pg_data/

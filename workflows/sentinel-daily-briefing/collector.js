@@ -260,6 +260,7 @@ for (const team of CLICKUP_TEAMS) {
     const resp = await this.helpers.httpRequest({ method: 'GET', url, headers: CK });
     const d = typeof resp === 'string' ? JSON.parse(resp) : resp;
     const tasks = (d.tasks || []).map(t => ({
+      id: t.id, url: t.url || null,
       name: t.name, status: (t.status || {}).status || '?', due: fmtDue(t.due_date),
       priority: (t.priority || {}).priority || 'none',
       space: spaceMap[(t.space || {}).id] || (t.list || {}).name || '',

@@ -9,14 +9,27 @@ prioritized briefing — with day-over-day continuity.
 > `__GOOGLE_REFRESH_TOKEN__`, etc.). Real values live in the n8n credential store and the
 > gitignored `credentials/` directory. Fill them in before running `deploy.py`.
 
-## Pipeline (multi-stage analyst)
+## Pipeline (multi-stage analyst, Postgres-backed)
 
 ```
 Schedule 07:00 ─┐
-Webhook (test) ─┴► Set Date Range ► Collect All Sources ► Recall Yesterday
-   ► Build Analyst Prompt ► Sentinel Analyst (Claude) ► Parse Analyst Output
-   ► Execute Mail Cleaning ► Send to Cem
+Webhook (test) ─┴► Set Date Range ► Collect All Sources ─┬► Emit Signals ► Insert Signals   (→ Postgres)
+                                                         └► Load Context (Postgres) ► Build Analyst Prompt
+   ► Sentinel Analyst (Claude) ► Parse Analyst Output ► Execute Mail Cleaning ─┬► Send to Cem
+                                                                              └► Store Briefing (→ Postgres)
 ```
+
+**Phase 1 (Postgres) is live.** Continuity + learning now come from the `sentinel`
+database, not from parsing the Slack DM:
+- **Emit Signals / Insert Signals** — every collected item (emails, overdue tasks,
+  meeting notes) is normalized into a `Signal` row (dedup via `content_hash`).
+- **Load Context** — reads `decision_profile` + recent `decisions` + the last
+  `briefings` row, and injects them so the analyst pre-classifies by how Cem has decided
+  before. (Learning activates once Decision Capture is wired — needs Slack Event
+  Subscriptions, see [../../infra/SERVER_SETUP.md](../../infra/SERVER_SETUP.md) §4.)
+- **Store Briefing** — persists the prose + open issues for tomorrow's continuity.
+
+See [../../SENTINEL_DESIGN.md](../../SENTINEL_DESIGN.md) for the full target architecture.
 
 | Node | Job |
 |---|---|

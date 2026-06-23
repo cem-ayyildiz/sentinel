@@ -1,0 +1,40 @@
+# Sentinel Postgres — runs alongside your existing n8n stack.
+# n8n stays on SQLite; this DB is ONLY for Sentinel (signals / decisions / learning).
+#
+# One-time setup (run from this directory, with schema.sql next to this file):
+#   1.  docker network create sentinel-net
+#   2.  printf 'SENTINEL_PG_PASSWORD=%s\n' "$(openssl rand -hex 24)" > .env   # keep this safe
+#   3.  docker compose -f docker-compose.sentinel-pg.yml up -d
+#   4.  docker ps   # find your n8n container name, then attach it (no restart needed):
+#       docker network connect sentinel-net <n8n_container_name>
+#
+# After that, n8n reaches Postgres at host "sentinel-pg", port 5432, db/user "sentinel".
+# Send me the password from .env and I'll create the n8n Postgres credential + build.
+
+services:
+  sentinel-pg:
+    image: postgres:16
+    container_name: sentinel-pg
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: sentinel
+      POSTGRES_USER: sentinel
+      POSTGRES_PASSWORD: ${SENTINEL_PG_PASSWORD:?set SENTINEL_PG_PASSWORD in .env}
+    volumes:
+      - /home/ubuntu/dockers/sentinel/pg_data:/var/lib/postgresql/data
+      # schema.sql auto-runs ONLY on first init (empty data dir):
+      - ./schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    ports:
+      # Host-only access for psql/admin; NOT exposed to the internet.
+      - "127.0.0.1:5433:5432"
+    networks:
+      - sentinel-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sentinel -d sentinel"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  sentinel-net:
+    external: true   # created once via: docker network create sentinel-net
