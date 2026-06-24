@@ -68,3 +68,19 @@ CREATE TABLE IF NOT EXISTS decision_profile (
 INSERT INTO decision_profile (profile)
 SELECT '{"always_skip":[],"always_do":[],"delegate_map":{}}'::jsonb
 WHERE NOT EXISTS (SELECT 1 FROM decision_profile);
+
+-- Proposed/executed actions (e.g. ClickUp tasks) awaiting or past Cem's Slack approval.
+CREATE TABLE IF NOT EXISTS actions (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  signal_id   UUID REFERENCES signals(id),
+  kind        TEXT,                     -- 'clickup_task'
+  org         TEXT,
+  payload     JSONB,                    -- { title, description, assignee_hint, due }
+  status      TEXT DEFAULT 'pending',   -- pending|done|rejected|failed
+  slack_ts    TEXT,                     -- proposal message ts (approval reaction maps here)
+  result_url  TEXT,
+  created_at  TIMESTAMPTZ DEFAULT now(),
+  updated_at  TIMESTAMPTZ DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS actions_signal_kind ON actions(signal_id, kind);
+CREATE INDEX IF NOT EXISTS actions_slack_ts ON actions(slack_ts);
