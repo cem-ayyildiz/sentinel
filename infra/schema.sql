@@ -17,7 +17,8 @@ CREATE TABLE IF NOT EXISTS signals (
   url           TEXT,
   metadata      JSONB DEFAULT '{}',
   content_hash  TEXT UNIQUE,              -- dedup: skip if already seen
-  slack_ts      TEXT,                     -- Slack message ts of this item's Decision Queue post
+  slack_ts      TEXT,
+  archived_at   TIMESTAMPTZ,             -- set when a skipped email was archived out of the inbox                     -- Slack message ts of this item's Decision Queue post
   ingested_at   TIMESTAMPTZ DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS signals_org_type_time ON signals (org, type, ingested_at);
