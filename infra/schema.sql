@@ -84,3 +84,6 @@ CREATE TABLE IF NOT EXISTS actions (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS actions_signal_kind ON actions(signal_id, kind);
 CREATE INDEX IF NOT EXISTS actions_slack_ts ON actions(slack_ts);
+
+-- The 2026 roadmap doc (read from Miro 'FS - Tech Roadmapping'), correlated weekly vs ClickUp.
+CREATE TABLE IF NOT EXISTS roadmap (id INT PRIMARY KEY, doc TEXT, source TEXT, updated_at TIMESTAMPTZ DEFAULT now());
