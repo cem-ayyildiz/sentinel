@@ -9,11 +9,11 @@ const out = [];
 for (const s of items) {
   const m = s.metadata || {};
   const snip = (s.body || '').replace(/\s+/g, ' ').trim().substring(0, 150);
-  const hint = s.hint ? `   _(${s.hint})_\n` : '';
+  const sugg = s.verdict ? `   _💡 suggest: *${s.verdict}*${s.confidence === 'low' ? ' (not sure — your call)' : ''}${s.hint ? ` — ${s.hint}` : ''}_\n` : '';
   let line;
-  if (s.type === 'email') line = `:email: *${s.title}* — _${(s.actor || '?').replace(/<.*>/, '').trim()}_\n${hint}${snip}${s.url ? `\n<${s.url}|↗ open in Gmail>` : ''}`;
-  else if (s.type === 'task') line = `:white_check_mark: *${s.title}* — overdue${m.priority && m.priority !== 'none' ? ` [${m.priority}]` : ''}\n${hint}${s.url ? `<${s.url}|↗ open task>` : ''}`;
-  else line = `• *${s.title}*\n${hint}${snip}`;
+  if (s.type === 'email') line = `:email: *${s.title}* — _${(s.actor || '?').replace(/<.*>/, '').trim()}_\n${sugg}${snip}${s.url ? `\n<${s.url}|↗ open in Gmail>` : ''}`;
+  else if (s.type === 'task') line = `:white_check_mark: *${s.title}* — overdue${m.priority && m.priority !== 'none' ? ` [${m.priority}]` : ''}\n${sugg}${s.url ? `<${s.url}|↗ open task>` : ''}`;
+  else line = `• *${s.title}*\n${sugg}${snip}`;
   const r = await post(line);
   if (r && r.ok) out.push({ json: { id: s.id, ts: r.ts } });
 }

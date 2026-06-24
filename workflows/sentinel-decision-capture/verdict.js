@@ -6,6 +6,7 @@ const map = {
   bust_in_silhouette:'delegate_person', busts_in_silhouette:'delegate_person',
   robot_face:'delegate_agent', robot:'delegate_agent', eyes:'watch', eye:'watch',
   wastebasket:'skip', no_entry_sign:'skip', x:'skip', '-1':'skip',
+  checkered_flag:'done', ballot_box_with_check:'done', heavy_check_mark_2:'done', '100':'done',
 };
 const verdict = map[j.reaction];
 if (!verdict) return [];

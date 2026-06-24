@@ -27,7 +27,7 @@ CREATE INDEX IF NOT EXISTS signals_slack_ts ON signals (slack_ts);
 CREATE TABLE IF NOT EXISTS decisions (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   signal_id     UUID REFERENCES signals(id) UNIQUE,   -- one decision per signal; upsert on conflict
-  verdict       TEXT,                     -- do_now|do_later|delegate_person|delegate_agent|watch|skip (nullable: a reason can land before a verdict)
+  verdict       TEXT,                     -- do_now|do_later|delegate_person|delegate_agent|watch|skip|done (nullable: a reason can land before a verdict)
   delegate_to   TEXT,
   reason        TEXT,                     -- the WHY — paraphrased from Cem's reply; strongest learning signal
   raw_input     TEXT,                     -- Cem's exact reply text
