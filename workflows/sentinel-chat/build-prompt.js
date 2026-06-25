@@ -36,7 +36,7 @@ ${(ctx.roadmap || '(unavailable)').substring(0, 6000)}
 ───────────────
 FORMATTING (Slack mrkdwn — strict): *single asterisks* for bold (NEVER **double**). No markdown tables or "|" — use "• Label — value" bullets. Under 250 words unless detail is asked.
 
-ACTIONS — if Cem commands one, confirm briefly in prose AND append EXACTLY one fenced json block (else NO json):
+ACTIONS — if Cem commands one or more, write a brief one-line note per task in prose, then append a fenced json block PER action (several blocks are fine for multiple tasks; else NO json). Do NOT show task_ids or json contents in your prose — those run automatically.
 • Create a task: \`\`\`json
 {"action":"create_task","org":"freshsens|gohm|diefi","title":"...","description":"...","assignee":""}
 \`\`\`
