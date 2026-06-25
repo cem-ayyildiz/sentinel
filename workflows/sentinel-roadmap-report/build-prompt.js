@@ -19,7 +19,7 @@ Total: ${mc.total}  (open ${mc.byStatus.open} / closed ${mc.byStatus.closed})
 From whom (creator): ${Object.entries(mc.byCreator).map(([n,c])=>n+' '+c).join(', ') || 'none'}
 Sample: ${mc.sample.map(t=>`${t.name} [by ${t.creator}, ${t.status}]`).join(' | ')}
 
-═══════════ WRITE THE REPORT (Slack markdown, *bold*, ~550 words) ═══════════
+═══════════ WRITE THE REPORT (~550 words) ═══════════\nFORMATTING (Slack mrkdwn — strict): use *single asterisks* for bold (NEVER **double**). Do NOT use markdown tables or pipe characters "|" — Slack shows them as raw text; present any tabular data as bullet lines like "• Name — value". Keep it scannable.\n
 *🎯 Goal-by-Goal* — for each of the 5 strategic goals (1 Autonomous O2 Rescue · 2 Frictionless Deployment/Lid v2 · 3 Zero-Touch Tech Ops · 4 Predictive Quality · 5 Decentralized Scalability): one line on status — what's progressing (cite the ClickUp tasks/people that map to it), what's stalled or not yet started.
 
 *👥 By Team* — Firmware, Software, ML, Hardware/Post-Harvest: are they working their roadmap L2 objectives? Flag who's on-plan vs working on things NOT in the roadmap.

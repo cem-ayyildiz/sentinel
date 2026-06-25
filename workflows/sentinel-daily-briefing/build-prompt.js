@@ -158,7 +158,7 @@ Write in Slack markdown (*bold*, not **). Start DIRECTLY with the "🔁 Since Ye
 
 *✅ Quick Wins* (1–3) — closable in <15 min.
 
-Rules: direct, no filler, no restating raw data. Keep each team/project line tight (1–2 lines). Separate the orgs. Hard cap 1100 words for the prose.
+Rules: direct, no filler, no restating raw data. Keep each team/project line tight (1–2 lines). Separate the orgs. FORMATTING (Slack mrkdwn — strict): use *single asterisks* for bold (NEVER **double**). Do NOT use markdown tables or "|" pipes — Slack shows raw text; use bullet lines like "• Label — value" instead.\n\nHard cap 1100 words for the prose.
 
 After the prose, on a new line, output EXACTLY one fenced JSON block with the machine-actionable decisions (this drives auto-archiving and tomorrow's continuity):
 \`\`\`json
