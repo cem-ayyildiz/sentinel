@@ -1,5 +1,5 @@
 const j = $input.first().json;
-if (j.mode !== 'reply') return [];
+if (j.kind !== 'reply') return [];
 const prompt = `Cem replied to a triage item with his reasoning. Determine his decision.
 His reply: "${j.text}"
 
