@@ -2,12 +2,21 @@ const wh = $('Chat In').first().json;
 const q = (wh.body && wh.body.text) || (wh.query && wh.query.text) || 'status';
 const conv = $('Gather Conversation').first().json.transcript || '(no prior conversation)';
 const g = $('Gather ClickUp').first().json;
-const cu = g.clickup || []; const taskIndex = g.taskIndex || [];
+const boards = g.boards || []; const taskIndex = g.taskIndex || [];
 const mc = $('Gather Mail & Calendar').first().json.mailcal || {};
 const ctx = $('Load Context').first().json || {};
-const cuStr = cu.map(o => { if (o.error) return `${o.org}: (error)`;
-  const ppl = Object.entries(o.people || {}).map(([n, ts]) => `  *${n}*: ${ts.join('; ')}`).join('\n');
-  return `*${o.org}* (${o.totalUpdated} active in 7d):\n${ppl || '  (quiet)'}`; }).join('\n\n');
+const tc = (s) => s.replace(/\b\w/g, c => c.toUpperCase());
+const sum = (sc) => Object.values(sc).reduce((a,c)=>a+c,0);
+const boardStr = boards.map(b => {
+  if (b.error) return `*${b.org}*: (no board — ${b.error})`;
+  const head = `*${b.org} — ${b.sprint}*${b.active ? ' (current sprint)' : ' (latest sprint — no active one now)'} · ${b.total} tasks`;
+  const tot = 'TOTALS — ' + b.order.map(s => `${tc(s)}: ${b.totals[s]}`).join(' · ');
+  const rows = Object.entries(b.people)
+    .sort((x,y) => sum(y[1]) - sum(x[1]))
+    .map(([p, sc]) => `  • ${p} — ` + b.order.map(s => `${tc(s)} ${sc[s]||0}`).join(', '))
+    .join('\n');
+  return `${head}\n${tot}\n${rows}`;
+}).join('\n\n');
 const mails = (arr) => (arr && arr.length) ? arr.map(e => `- *${e.subject}* — ${e.from}: ${e.snippet}`).join('\n') : '_none_';
 const evs = (arr) => (arr && arr.length) ? arr.map(e => `- ${e.start} ${e.summary}`).join('\n') : '_none_';
 const idx = taskIndex.map(t => `${t.id}: ${t.name} [${t.org}]`).join('\n');
@@ -19,8 +28,8 @@ ${conv}
 ═══ CEM'S LATEST MESSAGE ═══
 ${q}
 
-═══ WHO'S DOING WHAT (ClickUp, 7d) ═══
-${cuStr || '(none)'}
+═══ LIVE BOARD — EXACT COUNTS (each org's sprint board, by status & person) ═══
+${boardStr || '(none)'}
 ═══ RECENT TASKS (task_id: name — for comment/reference) ═══
 ${idx || '(none)'}
 ═══ INBOX FS (3d) ═══
@@ -34,7 +43,9 @@ ${evs(mc.calGohm)}
 ${(ctx.roadmap || '(unavailable)').substring(0, 6000)}
 
 ───────────────
-FORMATTING (Slack mrkdwn — strict): *single asterisks* for bold (NEVER **double**). No markdown tables or "|" — use "• Label — value" bullets. Under 250 words unless detail is asked.
+DATA RULES: The LIVE BOARD block holds EXACT live counts straight from ClickUp. When Cem asks how many tasks are Open / In Progress / Review / Closed (per person or in total), report those numbers VERBATIM — never re-derive or estimate from the RECENT TASKS list. "FreshSens development board" = the FreshSens current-sprint board above. If a count is 0, say 0. State which sprint the numbers are from.
+
+FORMATTING (Slack mrkdwn — strict): *single asterisks* for bold (NEVER **double**). NEVER use markdown tables or "|" columns — Slack does not render them. For tabular data use one bullet per person: "• *Name* — Open 2, In Progress 1, Review 6, Closed 0". Keep it tight. Under 300 words unless Cem asks for full detail.
 
 ACTIONS — if Cem commands one or more, write a brief one-line note per task in prose, then append a fenced json block PER action (several blocks only for genuinely DIFFERENT tasks; else NO json). Do NOT show task_ids or json contents in your prose — those run automatically.
 • Create a task: \`\`\`json

@@ -1,22 +1,41 @@
+// Live "Development board" = each org's active sprint list, counted by REAL status + person.
+// Full pagination + include_closed so totals match the ClickUp board exactly (no 7d/page-0 cap).
 const CK = '__CLICKUP_API_KEY__';
-const teams = [['9009068877','FreshSens'],['42085420','GOHM'],['9014647941','DIEFI']];
-const cutoff = Date.now() - 7 * 24 * 3600 * 1000;
-const out = []; const taskIndex = [];
-for (const [tid, name] of teams) {
+const orgs = [
+  { key:'FreshSens', sprintFolder:'90090412752' },
+  { key:'GOHM',      sprintFolder:'90151692710' },
+  { key:'DIEFI',     sprintFolder:'90145177889' },
+];
+const J = (r) => typeof r === 'string' ? JSON.parse(r) : r;
+const http = (url) => this.helpers.httpRequest({ method:'GET', url, headers:{ Authorization: CK } });
+const now = Date.now();
+const boards = []; const taskIndex = [];
+for (const o of orgs) {
   try {
-    const sp = await this.helpers.httpRequest({ method:'GET', url:`https://api.clickup.com/api/v2/team/${tid}/space?archived=false`, headers:{Authorization:CK} });
-    const spd = typeof sp==='string'?JSON.parse(sp):sp; const smap={}; (spd.spaces||[]).forEach(s=>{smap[s.id]=s.name;});
-    const r = await this.helpers.httpRequest({ method:'GET', url:`https://api.clickup.com/api/v2/team/${tid}/task?date_updated_gt=${cutoff}&order_by=updated&subtasks=true&include_closed=true&page=0`, headers:{Authorization:CK} });
-    const d = typeof r==='string'?JSON.parse(r):r; const tasks=d.tasks||[];
-    const byPerson={};
-    for (const t of tasks) {
-      const sname=smap[(t.space||{}).id]||'?'; const st=(t.status||{}).status||'?';
-      const done=((t.status||{}).type==='closed'||(t.status||{}).type==='done');
-      if (taskIndex.length<60) taskIndex.push({ id:t.id, name:(t.name||'').substring(0,50), org:name });
-      (t.assignees||[]).forEach(a=>{ byPerson[a.username]=byPerson[a.username]||[];
-        if(byPerson[a.username].length<10) byPerson[a.username].push(`${done?'✓':'•'} ${(t.name||'').substring(0,48)} [${sname}/${st}]`); });
+    const lr = J(await http(`https://api.clickup.com/api/v2/folder/${o.sprintFolder}/list?archived=false`));
+    const lists = lr.lists || [];
+    let sprint = lists.find(l => l.start_date && l.due_date && Number(l.start_date) <= now && now <= Number(l.due_date));
+    const active = !!sprint;
+    if (!sprint) { const fut = lists.filter(l=>l.start_date).sort((a,b)=>Number(b.start_date)-Number(a.start_date)); sprint = fut[0]; }
+    if (!sprint) { boards.push({ org:o.key, error:'no sprint list' }); continue; }
+    let tasks = []; let page = 0;
+    while (page < 15) {
+      const d = J(await http(`https://api.clickup.com/api/v2/list/${sprint.id}/task?archived=false&include_closed=true&subtasks=false&page=${page}`));
+      const t = d.tasks || []; tasks = tasks.concat(t);
+      if (d.last_page || !t.length) break; page++;
     }
-    out.push({org:name, totalUpdated:tasks.length, people:byPerson});
-  } catch (e) { out.push({org:name, error:e.message}); }
+    const totals = {}; const people = {}; const stOrder = {};
+    for (const t of tasks) {
+      const so = t.status || {}; const st = so.status || '?';
+      if (!(st in stOrder)) stOrder[st] = (so.orderindex != null ? Number(so.orderindex) : 99);
+      totals[st] = (totals[st] || 0) + 1;
+      if (taskIndex.length < 90) taskIndex.push({ id:t.id, name:(t.name||'').substring(0,50), org:o.key });
+      const asg = t.assignees || [];
+      if (!asg.length) { people['(unassigned)'] = people['(unassigned)'] || {}; people['(unassigned)'][st] = (people['(unassigned)'][st]||0)+1; }
+      for (const a of asg) { const u = a.username; people[u] = people[u] || {}; people[u][st] = (people[u][st]||0)+1; }
+    }
+    const order = Object.keys(totals).sort((a,b)=>(stOrder[a]-stOrder[b]) || a.localeCompare(b));
+    boards.push({ org:o.key, sprint:sprint.name, active, total:tasks.length, order, totals, people });
+  } catch (e) { boards.push({ org:o.key, error:e.message }); }
 }
-return [{ json: { clickup: out, taskIndex } }];
+return [{ json: { boards, taskIndex } }];
