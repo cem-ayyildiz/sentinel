@@ -1,4 +1,4 @@
-// Execute ALL action blocks: create_task -> active sprint + real assignee; add_comment -> task.
+// Execute ALL action blocks: create_task -> active sprint + real assignees; add_comment -> task.
 const raw = $input.first().json.text || $input.first().json.output || '';
 const CK = '__CLICKUP_API_KEY__';
 const inbox = { freshsens: '901524068347', gohm: '901524068348', diefi: '1000360000000408' };
@@ -38,11 +38,13 @@ for (const action of actions) {
     if (action.action === 'create_task' && action.title) {
       const org = action.org || 'freshsens';
       const list = await activeSprintList(org);
-      const assignee = await resolveAssignee(action.assignee, org);
+      const names = Array.isArray(action.assignees) ? action.assignees.filter(Boolean) : (action.assignee ? [action.assignee] : []);
+      const ids = []; const named = [];
+      for (const nm of names) { const id = await resolveAssignee(nm, org); if (id && !ids.includes(id)) { ids.push(id); named.push(nm); } }
       const body = { name: action.title, description: `${action.description || ''}\n\n_(via Sentinel chat)_` };
-      if (assignee) body.assignees = [assignee];
+      if (ids.length) body.assignees = ids;
       const r = await http({ method:'POST', url:`https://api.clickup.com/api/v2/list/${list}/task`, headers:{Authorization:CK,'Content-Type':'application/json'}, body, json:true });
-      results.push(`✅ Created${assignee?` (assigned to ${action.assignee})`:''}: <${r.url}|${(action.title||'').substring(0,40)}>`);
+      results.push(`✅ Created${named.length?` (assigned to ${named.join(', ')})`:''}: <${r.url}|${(action.title||'').substring(0,40)}>`);
     } else if (action.action === 'add_comment' && action.task_id && action.comment) {
       await http({ method:'POST', url:`https://api.clickup.com/api/v2/task/${action.task_id}/comment`, headers:{Authorization:CK,'Content-Type':'application/json'}, body:{comment_text:action.comment, notify_all:false}, json:true });
       results.push(`✅ Comment → <https://app.clickup.com/t/${action.task_id}|${action.task_id}>`);

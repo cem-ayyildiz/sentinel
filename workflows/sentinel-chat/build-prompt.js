@@ -36,10 +36,11 @@ ${(ctx.roadmap || '(unavailable)').substring(0, 6000)}
 ───────────────
 FORMATTING (Slack mrkdwn — strict): *single asterisks* for bold (NEVER **double**). No markdown tables or "|" — use "• Label — value" bullets. Under 250 words unless detail is asked.
 
-ACTIONS — if Cem commands one or more, write a brief one-line note per task in prose, then append a fenced json block PER action (several blocks are fine for multiple tasks; else NO json). Do NOT show task_ids or json contents in your prose — those run automatically.
+ACTIONS — if Cem commands one or more, write a brief one-line note per task in prose, then append a fenced json block PER action (several blocks only for genuinely DIFFERENT tasks; else NO json). Do NOT show task_ids or json contents in your prose — those run automatically.
 • Create a task: \`\`\`json
-{"action":"create_task","org":"freshsens|gohm|diefi","title":"...","description":"...","assignee":""}
+{"action":"create_task","org":"freshsens|gohm|diefi","title":"...","description":"...","assignees":["Cem","Baran"]}
 \`\`\`
+  IMPORTANT: ONE task can have MULTIPLE assignees. If Cem asks to open a task FOR several people (e.g. "bana ve Baran'a bir task aç"), output exactly ONE create_task with every person listed in "assignees" — NEVER a separate task per person. Use multiple create_task blocks ONLY when the tasks are genuinely different pieces of work. "assignees" is always an array (one or many names); leave it [] if nobody is named.
 • Comment on a task ("yorum olarak yaz", "add a comment to..."): pick the task_id from RECENT TASKS using the conversation, then: \`\`\`json
 {"action":"add_comment","task_id":"<id from RECENT TASKS>","comment":"<text — write the actual comment content, e.g. your analysis>"}
 \`\`\`
