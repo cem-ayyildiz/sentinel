@@ -87,3 +87,27 @@ CREATE INDEX IF NOT EXISTS actions_slack_ts ON actions(slack_ts);
 
 -- The 2026 roadmap doc (read from Miro 'FS - Tech Roadmapping'), correlated weekly vs ClickUp.
 CREATE TABLE IF NOT EXISTS roadmap (id INT PRIMARY KEY, doc TEXT, source TEXT, updated_at TIMESTAMPTZ DEFAULT now());
+
+-- Live ledger of ClickUp status/assignee transitions (Sentinel · ClickUp Events).
+-- Exact weekly throughput + agent attribution; immune to sprint bulk-closeout.
+CREATE TABLE IF NOT EXISTS clickup_events (
+  id            BIGSERIAL PRIMARY KEY,
+  task_id       TEXT NOT NULL,
+  task_name     TEXT,
+  org           TEXT,
+  list_id       TEXT,
+  list_name     TEXT,
+  event         TEXT,                    -- taskStatusUpdated | taskAssigneeUpdated
+  field         TEXT,                    -- status | assignee_add | assignee_rem
+  before_val    TEXT,
+  after_val     TEXT,
+  assignee_user TEXT,
+  points        NUMERIC,
+  actor         TEXT,
+  event_time    TIMESTAMPTZ,
+  raw           JSONB,
+  ingested_at   TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS clickup_events_task ON clickup_events(task_id);
+CREATE INDEX IF NOT EXISTS clickup_events_time ON clickup_events(event_time DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS clickup_events_dedup ON clickup_events(task_id, field, COALESCE(after_val,''), event_time);
