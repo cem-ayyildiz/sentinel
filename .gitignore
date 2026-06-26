@@ -4,3 +4,4 @@ credentials/
 .env
 infra/.env
 infra/pg_data/
+infra/portainer-mcp
