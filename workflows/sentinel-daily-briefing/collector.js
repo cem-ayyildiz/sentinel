@@ -155,9 +155,16 @@ try {
   }
 } catch (e) { out.meetingNotes = []; out.errors.push('Meeting notes: ' + e.message); }
 
-// ===== SLACK (auto-discover every channel the bot is in — public + private) =====
-// No hardcoded list: invite @sentinel to any channel and it appears next run.
+// ===== SLACK (auto-discover every channel; registry tiers daily vs weekly + tags org) =====
+// Daily-tier + incident channels always appear; weekly-fri channels only on Friday (or when a
+// message looks critical). Each entry carries its org so the briefing groups incidents by company.
+// Unmapped channels default to daily (so a newly-invited channel is never silently dropped).
 const oldest = Math.floor((Date.now() - 28 * 3600 * 1000) / 1000);
+const slackReg = {};
+try { for (const r of (($('Load Registry').first().json.workspaces) || [])) {
+  if (r.kind === 'slack_channel') slackReg[(r.config && r.config.name) || (r.name || '')] = r;
+} } catch (e) {}
+const SLACK_ESC_RE = /\b(urgent|critical|down|outage|fail(ed|ure)?|error|alarm|blocker|escalat|p1|sev1|lost|churn)\b/i;
 try {
   let channels = [];
   let cursor = '';
@@ -171,7 +178,12 @@ try {
   } while (cursor);
 
   out.slack = [];
+  out.slackWeeklyHidden = [];
   for (const ch of channels) {
+    const sr = slackReg[ch.name];
+    const tier = sr ? (sr.cadence || 'daily') : 'daily';
+    const org = sr ? (sr.org || null) : null;
+    const incident = !!(sr && sr.config && sr.config.incident);
     try {
       const resp = await this.helpers.httpRequest({
         method: 'GET',
@@ -183,9 +195,14 @@ try {
         .filter(m => m.type === 'message' && (m.text || '').trim())
         .map(m => (m.text || '').replace(/\s+/g, ' ').substring(0, 240))
         .slice(0, 15);
-      out.slack.push({ channel: ch.name, priv: ch.priv, count: msgs.length, messages: msgs });
+      const critical = msgs.some(m => SLACK_ESC_RE.test(m));
+      // weekly-tier channels are hidden from the daily unless it's Friday or something looks critical
+      const show = tier === 'daily' || incident || (tier === 'weekly-fri' && dates.isFriday) || critical;
+      if (!show) { if (msgs.length) out.slackWeeklyHidden.push({ channel: ch.name, org, count: msgs.length }); continue; }
+      out.slack.push({ channel: ch.name, priv: ch.priv, count: msgs.length, messages: msgs,
+        org, tier, incident, escalated: critical && tier !== 'daily' && !incident });
     } catch (e) {
-      out.slack.push({ channel: ch.name, count: 0, messages: [], error: e.message });
+      out.slack.push({ channel: ch.name, count: 0, messages: [], error: e.message, org, tier });
     }
   }
   out.slackChannelCount = channels.length;

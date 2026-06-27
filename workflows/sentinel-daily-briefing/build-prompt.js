@@ -40,7 +40,7 @@ const fmtNotes = (arr) => (arr && arr.length)
 const fmtSlack = (arr) => {
   if (!arr || !arr.length) return '_no channels read_';
   return arr.filter(c => c.count > 0).map(c =>
-    `*#${c.channel}*${c.priv ? ' 🔒' : ''} (${c.count}):\n${c.messages.map(m => '  · ' + m).join('\n')}`
+    `*#${c.channel}*${c.priv ? ' 🔒' : ''}${c.org ? ' [' + c.org + ']' : ''}${c.escalated ? ' ⚡weekly-escalated' : ''} (${c.count}):\n${c.messages.map(m => '  · ' + m).join('\n')}`
   ).join('\n\n') || '_all channels quiet_';
 };
 

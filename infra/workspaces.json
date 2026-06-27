@@ -72,11 +72,12 @@
         "readme": "DIEFI — an EU project of GOHM, its own ClickUp team with a single Development space that holds the DIEFI sprint folder (90145177889). This is the active GOHM-side board (~28 tasks/30d). DAILY progress update. Cem leads this; deliverable deadlines matter."
       },
       {
-        "id": "90151309240", "org": "gohm", "name": "Home / Smart-Home",
-        "cadence": "daily", "depth": "summary", "review_is_done": false, "has_sprint": false,
-        "routing_keywords": ["home","loxone","smart home","smart-home","house","renovation","miniserver"],
+        "id": "90151309240", "org": "gohm", "name": "villakurt",
+        "cadence": "daily", "depth": "summary", "review_is_done": false, "has_sprint": true,
+        "sprint_folder": "90151882929",
+        "routing_keywords": ["villakurt","home","loxone","smart home","smart-home","house","renovation","miniserver","home assistant"],
         "hygiene": [],
-        "readme": "Cem's personal Home list (Loxone Miniserver smart-home + house renovation). Reported under Personal / Smart Home."
+        "readme": "Cem's personal villakurt space (Loxone Miniserver smart-home + house renovation + Home Assistant at home.villakurt.eu). Has a biweekly sprint folder (90151882929); current sprint is 'Sprint 13' (15-30 Jun 2026). Reported under Personal / Smart Home."
       }
     ]
   },
@@ -96,6 +97,8 @@
       { "name": "work-orders",      "org": "freshsens", "team": "Operations",  "tier": "daily" },
       { "name": "produce_alarms",   "org": "freshsens", "team": "Postharvest", "tier": "daily", "incident": true },
       { "name": "support",          "org": "freshsens", "team": "Operations",  "tier": "daily", "incident": true },
+      { "name": "gohm-alerts",      "org": "gohm",      "team": "Ops",         "tier": "daily", "incident": true },
+      { "name": "multica-agent-process", "org": "freshsens", "team": "Dev",    "tier": "daily" },
       { "name": "fs-sales",         "org": "freshsens", "team": "Sales",       "tier": "weekly-fri" },
       { "name": "web-contacts",     "org": "freshsens", "team": "Sales",       "tier": "weekly-fri" },
       { "name": "fs-seo",           "org": "freshsens", "team": "Sales",       "tier": "weekly-fri" }
