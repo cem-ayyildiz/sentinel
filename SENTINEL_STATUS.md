@@ -18,8 +18,20 @@ Plus a **Chat** assistant (DM it questions / commands).
 **Active focus (story points / agent throughput):**
 - ✅ Built: `clickup_events` ledger + ClickUp webhook capturing status/assignee/comment events live.
 - ✅ Built: Multica **agent detection from comments** + **auto-estimate story points** on delivery.
-- ⏳ **NEXT TODO: Phase 3 — weekly SP snapshot report** (read the ledger, output the per-person
-  weekly story-point column automatically + agent deliveries). See §6.
+- ✅ Built (2026-06-27): **Phase 3 weekly SP** — folded into Friday's daily briefing (per-person
+  actor-credited SP + agent MR deliveries), via `Load Context`. See §9.
+
+**Registry-driven ClickUp optimization (2026-06-27) — see §9:**
+- ✅ **Workspace registry** `infra/workspaces.json` → Postgres `workspaces` table (single source of
+  truth for cadence/depth/routing per ClickUp space + Slack channel + Gmail rule). Sync:
+  `infra/sync-workspaces.py [--emit-sql]`.
+- ✅ Daily briefing reorganized **by company** (cockpit + FreshSens/GOHM/DIEFI/Personal blocks);
+  Development = deep sprint board + comments + **board-hygiene** flags; weekly spaces (Sales/Team
+  Leads/Fundraising) Friday-only + escalation; Slack channels tiered + org-tagged.
+- ✅ Issue routing + chat now resolve target boards from the registry (default Management, ask if
+  ambiguous).
+- ⚠️ **Working n8n API key is in `~/.claude/settings.json` → `mcpServers.n8n-hr.env.N8N_API_KEY`.**
+  The one in `~/.claude.json` is STALE (401).
 
 ---
 
@@ -226,9 +238,58 @@ Build a workflow (cron weekly, e.g. Mon) that reads `clickup_events` for the ISO
 
 ## 8. How to resume next session
 
-1. Read this file + `infra/schema.sql` + `workflows/sentinel-clickup-events/`.
-2. Confirm the ledger is accumulating: query `clickup_events` (via DB Test) — expect status/assignee
-   rows from live team activity, plus any `agent_mr`/`agent_points_est`.
-3. **Build Phase 3** (weekly SP snapshot report) — the one remaining piece.
-4. Memory index: `~/.claude/projects/-home-cem-temp-sentinel/memory/` (`sentinel-phase1-postgres.md`
-   has the running build log).
+1. Read this file + `infra/schema.sql` + `infra/workspaces.json` + `workflows/sentinel-clickup-events/`.
+2. Confirm the ledger is accumulating: query `clickup_events` / `clickup_comments` (via DB Test).
+3. Memory index: `~/.claude/projects/-home-cem-temp-sentinel/memory/`.
+
+---
+
+## 9. Registry-driven cadence/tiering (built 2026-06-27)
+
+**Single source of truth: `infra/workspaces.json`** → mirrored to Postgres `workspaces` table by
+`infra/sync-workspaces.py --emit-sql` (run the SQL via DB Test). Holds per **ClickUp space** /
+**Slack channel** / **Gmail rule**: `cadence` (daily | weekly-fri | mute), `depth` (deep|track|
+summary), `routing_keywords`, `hygiene` flags, authored `readme`. **Edit the JSON, re-sync, done.**
+
+**Spaces:** FreshSens Development (daily/deep), Management (daily/track, default issue landing),
+Sales+PH&Ops / Team Leads / Fundraising (weekly-fri), Admin (mute); GOHM Management (daily, the live
+hub) + villakurt/Home (personal); DIEFI Development (daily). Org→team: fs `9009068877`, gohm
+`42085420`, diefi `9014647941`. Sprint folders: fs `90090412752`, gohm `90151692710`, diefi `90145177889`.
+
+**Daily Briefing (`UR3IjaOiHX0guopW`):**
+- New **`Load Registry`** Postgres node (Set Date Range → Load Registry → Collect All Sources).
+  `set-dates.js` now emits `isFriday/isMonday/weekStart/weekAgo/weekdayName`.
+- Collector ClickUp section is registry-tiered: Development = full active-sprint board (Review=done,
+  SP rollup) + **board-hygiene** (stale_in_progress, missing_points, nothing_in_review); track spaces
+  = recent 7d activity; weekly spaces folded only on Friday + always escalation-scanned (urgent/high ·
+  overdue · blocker kw · Cem assigned). Slack channels tiered + **org-tagged** (weekly channels hidden
+  off-Friday unless critical). `out.clickup = {daily, weekly, escalations, personal}`; `out.clickupOverdue`
+  kept for Emit Signals.
+- `Load Context` extended: `dev_comments` (24h from `clickup_comments`), `weekly_sp` (actor-credited,
+  agent excluded via `NOT LIKE '%multica%'`), `weekly_agent` (agent_mr deliveries).
+- `build-prompt.js` reorganized **by company**: cockpit (Since Yesterday · Schedule · Top Priorities ·
+  Meetings) then FreshSens / GOHM / DIEFI / Personal blocks; incidents + inbox split per company;
+  Friday **📊 Weekly Review** inside FreshSens.
+
+**ClickUp Events (`4kQIG4Dhb7f5edWl`):** captures EVERY comment → `clickup_comments` (Route-by-table
+via SQL `WHERE _table=...` guards on Insert Events + new Insert Comments node); org resolved from a
+space→org map (fixed GOHM/DIEFI mislabel).
+
+**Issue Router (`ICQRNBVKfn5kkMGO`) + Decision Capture (`tTq2dXFA8xc1C5uZ`):** proposals pick the
+target space by registry keywords (default Management, flag ambiguous → asks Cem); on approval the task
+is created in that space's active-sprint/first list (falls back to per-org Sentinel Inbox). + Load Registry.
+
+**Chat (`jiC77CfK4B8yDtFm`):** referenced-board map built from registry routing_keywords (all spaces).
++ Load Registry (Gather Conversation → Load Registry → Gather ClickUp).
+
+**New tables:** `clickup_comments`, `workspaces` (DDL in `infra/schema.sql`).
+
+**Deploy/test gotchas learned:**
+- n8n key: `~/.claude/settings.json` → `mcpServers.n8n-hr.env` (the `.claude.json` one is 401).
+- Live Code nodes hold real secrets while repo is sanitized → deploy by **surgical string-replace of
+  the changed (secret-free) block** inside the live `jsCode`, never a full overwrite (collector, ledger,
+  router, chat, execute-approval all done this way). build-prompt/set-dates have no secrets → safe full
+  overwrite. Helper: `/tmp/.../n8n.py` (get/put/run-sql with browser UA + settings-allowlist).
+- To test the briefing without side effects: set `disabled:true` on Insert Signals / Execute Mail
+  Cleaning / Send to Cem / Store Briefing / Trigger Queue, trigger `sentinel-test-trigger-001`, read the
+  execution's node outputs, then re-enable. (Capture the exec by id>base & finished — the analyst step is slow.)
