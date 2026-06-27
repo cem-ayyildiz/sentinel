@@ -184,29 +184,40 @@ ${fmtOverdue(oDiefi.tasks)}
 
 ${d.errors && d.errors.length ? '⚠️ Collection issues: ' + d.errors.join('; ') + '\n' : ''}
 ═══════════════════ PRODUCE THE BRIEFING ═══════════════════
-Write in Slack markdown (*bold*, not **). Start DIRECTLY with the "🔁 Since Yesterday" section — no title/date line (one is prepended automatically). Sections, in order:
+Write in Slack markdown (*bold*, not **). Start DIRECTLY with the cockpit (no title/date line — one is prepended). STRUCTURE: a short cross-org COCKPIT, then ONE self-contained block per company. Use a divider line "───────────" between the cockpit and each company block. Keep each company's content fully inside its block — do NOT mix orgs.
 
-*🔁 Since Yesterday* — vs yesterday's briefing: what's STILL OPEN (now older/riskier), RESOLVED, NEW. 3–5 lines. If no prior briefing, "First run — baseline established."
+══════ COCKPIT (cross-org — keep tight) ══════
+*🔁 Since Yesterday* — vs yesterday: STILL OPEN (now older/riskier), RESOLVED, NEW. 3–5 lines. If no prior briefing, "First run — baseline established."
+*📌 Today's Schedule* — all orgs on ONE timeline; each meeting tagged 🔴 must-attend / 🟡 optional / ⚪ routine AND [FS]/[GOHM]/[DIEFI]; note prep; resolve conflicts.
+*🔥 Top Priorities* (max 6) — ranked ACROSS all orgs (this is the one cross-org ranking), each tagged [FS]/[GOHM]/[DIEFI]. CONNECT signals; PULL IN any ⚡ escalations. Reference email tags like [FS3].
+*🗣️ From Yesterday's Meetings* — all orgs; decisions/action items landing on Cem. 1 line/meeting; skip routine standups unless notable.
 
-*📌 Today's Schedule* — each meeting tagged 🔴 must-attend / 🟡 optional / ⚪ routine; note prep; resolve conflicts.
+───────────
+══════ 🏭 FRESHSENS ══════
+*Development* — per dev team (ML · Hardware · Firmware · Backend · Software · Postharvest) where inferable: shipped (✓) / in flight / blockers / who's driving. Weave in the NEW task comments (real progress/decisions).
+*Board hygiene* — surface the ⚠️ flags (stale in-progress, missing story points, nothing in review) as a gentle nudge — the team doesn't always keep the board honest.
+*Management* — one line: what Baran/Cem moved.
+*🚨 Incidents* — correlate FreshSens Slack alarms into incidents (severity, root-cause hypothesis, owner, next action): #fs-alerts, #thingsboard_alarms, #operation-alerts, #deployments, #produce_alarms, #support. If quiet, say so.
+${isFriday ? '*📊 Weekly Review* — completed issues + story points PER PERSON this week (from the weekly data above; actor-credited), the Multica Agent\'s deliveries (separate line, do not double-count), and a short Sales / Team Leads / Fundraising summary. Mirror Cem\'s sheet people: Gabby, Sevval, Sina Can, Sultan, Muhammad, Multica Agent.\n' : ''}*📨 Inbox — FreshSens* (ca@freshsens.ai) — triage the FS-tagged emails: (a) *Reply needed* (max 5) — sender + ask + [tag]; (b) *Delegate* — who owns it; (c) *Archive (FYI)* — count + safe FS tags.
 
-*🔥 Top Priorities* (max 6) — ranked, tagged [FS]/[GOHM]/[DIEFI]. CONNECT signals (an overdue task blocking a customer email; a meeting action needing a task). PULL IN any ⚡ escalations above. Reference email tags like [FS3].
+───────────
+══════ 🛰️ GOHM ══════
+*Projects* — Management hub (Robust6G coordination), Robust6G deadlines (D1.4 etc.), Q-TRUST6G (incoming): status, what moved, what needs Cem.
+*🚨 Incidents* — correlate GOHM alarms (#gohm-alerts, e.g. Meysu flapping) into incidents. If quiet, say so.
+*📨 Inbox — GOHM* (cem.ayyildiz@gohm.tech) — triage the GO-tagged emails: reply / delegate / archive (count + safe GO tags). NOTE: DIEFI-related mail also arrives here — route DIEFI items to the DIEFI block below.
 
-*🚨 Issues & Incidents* — correlate Slack alarms/errors/support into INCIDENTS (severity, root-cause hypothesis, owner, next action). Cover #*-alerts, #thingsboard_alarms, #support, #produce_alarms, #operation-alerts, #deployments. If quiet, say so.
+───────────
+══════ 🔬 DIEFI ══════
+*Progress* — DIEFI Development board: what moved, deliverable deadlines, what needs Cem (incl. any DIEFI items from the GOHM inbox).
 
-*🗣️ From Yesterday's Meetings* — decisions/action items landing on Cem. 1 line/meeting; skip routine standups unless notable.
+───────────
+══════ 🏠 PERSONAL / SMART HOME ══════
+2–4 lines on open Home items; flag anything time-sensitive.
 
-*🏭 FreshSens — Development* — the heart of the daily. Per dev team (ML · Hardware · Firmware · Backend · Software) where inferable: what shipped (✓) / in flight / blockers / who's driving. Weave in the NEW task comments (real progress/decisions). THEN a *Board hygiene* line: surface the ⚠️ flags above (stale in-progress, missing story points, nothing in review) as a gentle nudge — the team doesn't always keep the board honest. Then one line on *Management* (what Baran/Cem moved).
+══════ ✅ Quick Wins ══════
+(1–3) closable in <15 min, any org.
 
-*🛰️ GOHM & DIEFI* — GOHM/Management (Robust6G + Q-TRUST6G) and DIEFI: status, what moved, key deadline, what needs Cem.
-
-${isFriday ? '*📊 Weekly Review* — completed issues + story points PER PERSON this week (from the weekly data above), the Multica Agent\'s deliveries, and a short summary of Sales / Team Leads / Fundraising. Mirror Cem\'s sheet people: Gabby, Sevval, Sina Can, Sultan, Muhammad, Multica Agent.\n' : ''}*🏠 Personal / Smart Home* — 2–4 lines on open Home items; flag anything time-sensitive.
-
-*📨 Inbox Triage* — ${(d.emailsFs || []).length + (d.emailsGohm || []).length} inbox emails above. (a) *Reply needed* (max 6) — name sender + ask + [tag]. (b) *Delegate* — who owns it. (c) *Archive (FYI)* — count + safe tags (automated/bulk/no-reply/receipts/newsletters/promotions). NEVER archive: starred/important, real-person mail, anything needing a reply, or security/login/account notices.
-
-*✅ Quick Wins* (1–3) — closable in <15 min.
-
-Rules: direct, no filler, no restating raw data. Tight lines (1–2 each). Separate the orgs. Slack mrkdwn STRICT: *single asterisks* for bold (never **), no markdown tables, no "|" pipes — use "• Label — value" bullets. Hard cap 1100 words.
+Rules: direct, no filler, no restating raw data. Tight lines (1–2 each). NEVER mix orgs across blocks. Slack mrkdwn STRICT: *single asterisks* for bold (never **), no markdown tables, no "|" pipes — use "• Label — value" bullets. Hard cap 1200 words.
 
 After the prose, on a new line, output EXACTLY one fenced JSON block:
 \`\`\`json
