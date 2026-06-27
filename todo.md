@@ -1,72 +1,82 @@
 # Sentinel — Roadmap & Status
 
-_Last updated: 2026-06-21_
+_Last updated: 2026-06-27_
 
-The morning briefing is feature-complete and running daily. What remains is production
-hardening, optional action-taking capabilities, and a few decisions waiting on Cem.
+Sentinel runs Cem's 3-part vision end-to-end: cut noise (daily briefing + learning-gated
+triage + mail cleaning), team roadmap/SP reports, and Slack-approved issue creation — plus a
+Chat assistant. Architecture detail lives in `SENTINEL_DESIGN.md`; the running build log and all
+IDs/gotchas in `SENTINEL_STATUS.md` (registry/cadence work is §9).
 
 ---
 
 ## ✅ Done (live in production)
 
-- [x] **Daily briefing** — runs 07:00 Istanbul, delivered to Cem's Slack DM
-- [x] **9-stage analyst pipeline** (collect → recall → prompt → analyst → parse → clean → send)
-- [x] **Data sources wired**: FS+GOHM Gmail, FS+GOHM Calendar, Gemini meeting notes (Drive),
-      all 25 Slack channels (public+private, auto-discovered), ClickUp FS/GOHM/DIEFI + Home
-- [x] **Day-over-day continuity** — reads yesterday's briefing, tracks still-open/resolved/new
-- [x] **Issue correlation** — Slack alarms/errors grouped into incidents (severity + root cause + owner)
-- [x] **Meeting context** — pulls Gemini meeting summaries, surfaces decisions/actions
-- [x] **Org-accurate structure** — FreshSens by 8 teams, GOHM by funded project, Personal/Smart-Home
-- [x] **Meeting attendance triage** — each meeting tagged must-attend / optional / routine
-- [x] **Inbox triage** — every email dispositioned reply / delegate / archive
-- [x] **Mail auto-archiving ENABLED** — reversible (`Sentinel/FYI-Archived`), never deletes
-- [x] **Security guardrail** — login/password/verification/payment notices never archived
-- [x] **Long-message handling** — chunked at paragraph boundaries, overflow threaded
-- [x] **Source version-controlled** (secret-redacted) + project memory saved
+### Morning briefing
+- [x] **Daily briefing** — 07:00 Istanbul → Cem's Slack DM; day-over-day continuity
+- [x] **Data sources**: FS+GOHM Gmail, FS+GOHM Calendar, Gemini meeting notes, all Slack
+      channels (auto-discovered), ClickUp FS/GOHM/DIEFI
+- [x] **Incident correlation** (Slack alarms → incidents), **meeting context**, **inbox triage**
+- [x] **Mail auto-archiving** (reversible, security-guarded), long-message chunking
+
+### Phase 1 — sense / decide / learn (Postgres)
+- [x] **Postgres store** (`sentinel-pg`) + schema: signals, decisions, outcomes, briefings,
+      decision_profile, actions, roadmap, clickup_events, **clickup_comments**, **workspaces**
+- [x] **Ingest** (normalize+dedup), **Post Queue** (learning-gated triage), **Decision Capture**
+      (Slack reactions/replies → verdicts), **Profile** (weekly learned "how Cem decides")
+- [x] **Roadmap Report** (Mon) — 2026 Miro goals vs ClickUp
+- [x] **Chat assistant** — DM Q&A + commands (board counts, create task, comment)
+
+### Phase 2 — act (issue creation)
+- [x] **Issue Router** — delegate/do_later decisions → drafted ClickUp tasks → Slack approval → create
+
+### ClickUp / cadence optimization (2026-06-27) — see SENTINEL_STATUS §9
+- [x] **Workspace registry** `infra/workspaces.json` → Postgres `workspaces` (single source of
+      truth for cadence/depth/routing per ClickUp space + Slack channel + Gmail rule);
+      `infra/sync-workspaces.py`
+- [x] **Registry-tiered ClickUp** in the daily collector — Development daily/deep (sprint board,
+      Review=done, SP rollup, **board-hygiene** flags), Management daily, GOHM/DIEFI daily,
+      Sales/Team-Leads/Fundraising weekly (Fri) + critical escalation any day
+- [x] **Live comment capture** — every ClickUp comment → `clickup_comments`; GOHM/DIEFI org bug fixed
+- [x] **Weekly story points** — per-person (actor-credited) + Multica agent deliveries, folded into
+      Friday's briefing
+- [x] **Report reorganized by company** — cockpit (Since Yesterday · Schedule · Top Priorities ·
+      Meetings) + FreshSens / GOHM / DIEFI / Personal blocks; incidents + inbox split per company
+- [x] **Slack tiering** — channels tiered daily/weekly + org-tagged (weekly hidden off-Friday unless critical)
+- [x] **Registry-driven routing** — Issue Router + Chat resolve target boards from the registry
+      (default Management, ask when ambiguous)
 
 ---
 
 ## 🔧 Production hygiene (small, do soon)
-
-- [ ] **Remove the test webhook** (`sentinel-test-trigger-001`) — leave only the 07:00 schedule.
-      It's an open URL that triggers a real briefing + archiving.
-- [ ] **Reload the n8n browser tab** so the editor shows the current 9-node pipeline.
-- [ ] **Token resilience** — note/plan for refresh-token revocation (briefing degrades gracefully
-      and logs the error, but the source goes quiet until re-auth).
+- [ ] **Remove the test webhook** (`sentinel-test-trigger-001`) once happy — open URL triggers a real run
+- [ ] **Token resilience** — graceful-degrade is in place; plan for refresh-token revocation re-auth
+- [ ] **n8n key note** — valid key is in `~/.claude/settings.json` (mcpServers.n8n-hr); `.claude.json` is stale
 
 ---
 
 ## 🚀 Next capabilities (in value order)
-
-- [ ] **1. Draft replies** — for "reply-needed" emails, save ready Gmail *drafts*
-      (Cem reviews & sends; nothing auto-sends). _Highest daily leverage — recommended next._
-- [ ] **2. Auto-create ClickUp tasks** from meeting action items (e.g. Team Leads decisions),
-      so nothing falls through.
-- [ ] **3. Two-way Sentinel** — reply in Slack ("draft a response to Stefano", "what's blocking
-      Okka?") and it answers/acts. The jump from briefing → assistant.
-- [ ] **4. Alarm auto-triage** — acknowledge/snooze resolved ThingsBoard alarms so alert
-      channels stay signal.
-- [ ] **5. Smart filing** — file emails into existing labels (FS-Invoices, DIEFI…) not just archive.
+- [ ] **Map remaining Slack channels** in the registry (~12 unmapped default to daily) — mark weekly/muted
+- [ ] **Explicit Gmail weekly-sender folding** (optional; daily bulk/newsletter triage already covers most)
+- [ ] **Draft replies** — save ready Gmail drafts for reply-needed mail (nothing auto-sends)
+- [ ] **Auto-create ClickUp tasks** from meeting action items
+- [ ] **Two-way Sentinel** — richer Slack/Multica command surface ("draft a reply to Stefano")
+- [ ] **Outcome feedback loop** (Phase 2 close) — feed `outcomes` back into briefing context
+- [ ] **Alarm auto-triage** — ack/snooze resolved ThingsBoard alarms
+- [ ] **SP attribution by assignee** (currently actor-credited) — join to last assignee in the ledger
 
 ---
 
 ## ❓ Open questions / waiting on Cem
-
-- [ ] **6G-QTrust & ZedCadit** have no ClickUp spaces yet — create them and point Sentinel at
-      them; they'll auto-join the project view.
-- [ ] **Personal source** — confirm the GOHM "Home" ClickUp space is the right one, and whether
-      to include all household items or only smart-home.
-- [ ] **Calendar invites** — decide whether they should ever be archived (currently past invites can be).
-- [ ] **Slack coverage** — invite `@sentinel` to any other channels you want included
-      (it can't self-join private channels).
+- [ ] **Daily/weekly report format** — review the SAMPLE briefings posted to the DM; tell me edits
+- [ ] **6G-QTrust & ZedCadit** — no ClickUp spaces yet; create + add to the registry when they exist
+- [ ] **Robust6G/WP6** — dropped from the registry (closing soon); re-add if they stay
+- [ ] **Slack coverage** — invite `@sentinel` to any other channels to include
 
 ---
 
-## 💡 Backlog / ideas (not scheduled)
-
-- [ ] Evening / end-of-day wrap or weekly review variant
-- [ ] Deeper email reading (full body) for top-priority items before deciding
-- [ ] Pull Miro roadmap boards for strategic context (FS - Tech Roadmapping)
-- [ ] Wiki.js / knowledge-base integration (deferred earlier)
-- [ ] Escalation: if a 🔴 incident persists N days, ping beyond the DM
+## 💡 Backlog / ideas
+- [ ] Evening wrap / standalone weekly report variant (weekly currently folded into Friday)
+- [ ] Deeper email body reading for top-priority items before deciding
 - [ ] Per-source health check / "Sentinel status" command
+- [ ] Escalation beyond the DM if a 🔴 incident persists N days
+- [ ] Wiki.js knowledge-base integration

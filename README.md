@@ -55,29 +55,40 @@ Deep detail and the (secret-redacted) node source live in
 | **Calendar** | Both accounts' primary calendars, yesterday → today. |
 | **Meeting notes** | Gemini "Notes by Gemini" Google Docs in Drive (both accounts), since yesterday — summary extract for real meeting context. |
 | **Slack** | Auto-discovers **every channel the bot belongs to** (currently 25: 6 public + 19 private). Invite `@sentinel` to a channel and it appears in the next briefing automatically. |
-| **ClickUp** | FreshSens (`9009068877`), GOHM (`42085420`), DIEFI (`9014647941`) — team activity per project + Cem's personal overdue. Plus the GOHM **Home** space for personal/smart-home items. |
+| **ClickUp** | FreshSens (`9009068877`), GOHM (`42085420`), DIEFI (`9014647941`) — **registry-tiered**: Development as a full sprint board (Review=done, story points, hygiene), Management/GOHM/DIEFI daily, Sales/Team-Leads/Fundraising weekly, plus live task comments + Cem's overdue + villakurt (smart-home). |
 
 ---
 
 ## How the briefing is organized
 
-The prose briefing has these sections:
+The prose briefing is **grouped by company**: a short cross-org cockpit, then one
+self-contained block per company.
 
+**Cockpit (cross-org):**
 1. **🔁 Since Yesterday** — continuity (still-open / resolved / new)
-2. **📌 Today's Schedule** — each meeting tagged 🔴 must-attend / 🟡 optional / ⚪ routine, conflicts resolved
-3. **🔥 Top Priorities** — ranked, cross-referenced, tagged [FS]/[GOHM]/[DIEFI]
-4. **🚨 Issues & Incidents** — Slack alarms/errors correlated into incidents (severity + root-cause hypothesis + owner)
-5. **🗣️ From Yesterday's Meetings** — decisions/actions from the Gemini notes
-6. **🏭 FreshSens — Team Progress** — Backend, Frontend, ML, Firmware, Hardware, Postharvest, Operations, Sales
-7. **🛰️ GOHM — Projects** — Robust6G (incl. WP6), DIEFI, 6G-QTrust (incoming)
-8. **🏠 Personal / Smart Home** — Loxone + house items
-9. **📨 Inbox Triage** — reply / delegate / archive
-10. **✅ Quick Wins** + **🧹 Mail Cleaning** summary
+2. **📌 Today's Schedule** — one timeline, each meeting tagged 🔴/🟡/⚪ and [FS]/[GOHM]/[DIEFI]
+3. **🔥 Top Priorities** — ranked across all orgs, escalations pulled in
+4. **🗣️ From Yesterday's Meetings** — decisions/actions from the Gemini notes
 
-### Org structure it organizes around
-- **FreshSens** (CTO) — no funded projects yet; *ZedCadit* incoming. Reported by 8 functional teams.
-- **GOHM** (GM) — funded R&D projects: **Robust6G** (ClickUp ROBUST-6G + WP6 spaces), **DIEFI** (own ClickUp team), **6G-QTrust** (incoming).
-- **Personal / Smart Home** — GOHM ClickUp "Home" space (Loxone Miniserver + house renovation).
+**Per-company blocks:**
+- **🏭 FreshSens** — Development by team (ML/HW/FW/Backend/Software/PH) + new task comments +
+  **board-hygiene** nudge; Management; FreshSens incidents; FreshSens inbox triage; (Fridays)
+  **📊 Weekly Review** — completed issues + story points per person + Multica agent deliveries
+- **🛰️ GOHM** — projects (Management hub · Robust6G · Q-TRUST6G); GOHM incidents; GOHM inbox
+- **🔬 DIEFI** — progress, deliverable deadlines, Cem's actions
+- **🏠 Personal / Smart Home** — villakurt (Loxone + house) items
+- **✅ Quick Wins** + **🧹 Mail Cleaning** summary
+
+### Registry-driven cadence & tiering
+A **workspace registry** (`infra/workspaces.json` → Postgres `workspaces`) is the single source of
+truth for how each ClickUp space, Slack channel, and Gmail rule is reported:
+- **Cadence** — `daily` (Development, Management, GOHM, DIEFI), `weekly-fri` (Sales/Marketing/PH&Ops,
+  Team Leads, Fundraising — folded into Friday), or `mute`. Items in weekly/muted spaces still
+  escalate into the daily when critical (urgent/high · overdue · blocker · Cem-assigned).
+- **Depth** — `deep` (full sprint board + comments + hygiene), `track`, or `summary`.
+- **Routing** — keywords route Sentinel-created issues to the right space (default Management).
+
+Edit the JSON, run `infra/sync-workspaces.py`, and the briefing, issue router, and chat all pick it up.
 
 ---
 
@@ -85,15 +96,19 @@ The prose briefing has these sections:
 
 | Capability | Status |
 |---|---|
-| Daily multi-source briefing | ✅ live (07:00 Istanbul) |
+| Daily multi-source briefing (company-grouped) | ✅ live (07:00 Istanbul) |
 | Day-over-day continuity | ✅ live |
 | Issue correlation into incidents | ✅ live |
-| Per-team / per-project progress | ✅ live |
-| Inbox triage (reply/delegate/archive) | ✅ live |
-| Mail auto-archiving (reversible, guarded) | ✅ live |
+| Registry-driven cadence/tiering (daily/weekly/escalation) | ✅ live |
+| ClickUp board hygiene flags (stale / missing points / no review) | ✅ live |
+| Live task-comment capture + daily progress view | ✅ live |
+| Weekly story points per person + agent deliveries (Fridays) | ✅ live |
+| Inbox triage (reply/delegate/archive) + mail auto-archiving | ✅ live |
+| Learning loop (decisions → profile → pre-classification) | ✅ live |
+| Slack-approved issue creation, registry-routed | ✅ live |
+| Chat assistant (ask Sentinel) | ✅ live |
 | Draft replies | ⬜ planned |
 | Auto-create tasks from meeting actions | ⬜ planned |
-| Two-way (ask Sentinel / delegate to it) | ⬜ planned |
 
 See [`todo.md`](todo.md) for the full roadmap.
 
