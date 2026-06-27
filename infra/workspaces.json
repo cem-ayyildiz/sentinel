@@ -1,0 +1,111 @@
+{
+  "_doc": "Sentinel workspace registry — SINGLE SOURCE OF TRUTH for cadence, depth, routing, and reporting across ClickUp / Slack / Gmail. Edit this file (in VS Code with Claude), then run infra/sync-workspaces.py to mirror it into the Postgres `workspaces` table that Chat/SQL read. Consumed by: daily-briefing collector, weekly SP report, issue-router, chat gather.",
+  "_cadence_values": "daily = every briefing | weekly-fri = Friday AM block | weekly-mon = Monday block | mute = not reported",
+  "_depth_values": "deep = tasks + who + progress + new comments + hygiene | track = movement summary + my items | summary = counts + headlines | none",
+  "_escalation": "Any item in a weekly/mute space still surfaces in the DAILY report when it matches an escalation rule: priority in (urgent,high) OR overdue OR blocker keyword (blocked|blocker|escalate|risk|delay|stuck) OR Cem mentioned/assigned.",
+  "version": 1,
+
+  "clickup": {
+    "teams": {
+      "freshsens": { "team_id": "9009068877", "sprint_folder": "90090412752", "label": "FreshSens" },
+      "gohm":      { "team_id": "42085420",   "sprint_folder": "90151692710", "label": "GOHM" },
+      "diefi":     { "team_id": "9014647941",  "sprint_folder": "90145177889", "label": "DIEFI" }
+    },
+    "spaces": [
+      {
+        "id": "90090136601", "org": "freshsens", "name": "Development",
+        "cadence": "daily", "depth": "deep", "review_is_done": true, "has_sprint": true,
+        "weekly_sp": true,
+        "routing_keywords": ["dev","development","sprint","bug","ml","machine learning","model","firmware","hardware","gateway","ota","sensor","backend","frontend","software","api"],
+        "hygiene": ["stale_in_progress","missing_points","nothing_in_review","in_progress_no_comment"],
+        "readme": "Where the dev teams (Machine Learning, Hardware, Firmware, Backend, Software) do the work, on a sprint board. DAILY: who is on what, real progress, NEW task comments since yesterday, blockers. 'Review' status = implemented & in final check → count it as completed/near-complete. WEEKLY (Fri): completed issues + completed story points per person. Flag when the board doesn't reflect reality (in-progress tasks with no recent comment, tasks missing story points, nothing reaching Review)."
+      },
+      {
+        "id": "90010053606", "org": "freshsens", "name": "Management",
+        "cadence": "daily", "depth": "track", "review_is_done": true, "has_sprint": false,
+        "routing_keywords": ["management","yönetim","planning","plan","strategy","high level","high-level","hiring","org","process","okr"],
+        "hygiene": ["stale_in_progress"],
+        "readme": "Where Baran and Cem make plans and raise high-level management issues. DAILY: track what moves here. This is the DEFAULT home for issues Cem creates unless he names another project or context clearly points elsewhere — if still ambiguous, ASK Cem before creating."
+      },
+      {
+        "id": "90152680846", "org": "freshsens", "name": "Sales / Marketing / PH & Ops",
+        "cadence": "weekly-fri", "depth": "summary", "review_is_done": true, "has_sprint": false,
+        "routing_keywords": ["sales","marketing","seo","customer","deal","deployment","field","postharvest","post-harvest","operations","ops","work order","produce"],
+        "hygiene": [],
+        "readme": "Sales team work PLUS ongoing field deployments by the postharvest & operations teams. WEEKLY (Fri AM) summary in the daily report. Escalate to DAILY only when critical (urgent/high priority, overdue, blocker keyword, or Cem mentioned) — e.g. a failed field deployment or a customer-blocking issue."
+      },
+      {
+        "id": "90155478263", "org": "freshsens", "name": "Team Leads",
+        "cadence": "weekly-fri", "depth": "summary", "review_is_done": true, "has_sprint": false,
+        "routing_keywords": ["team lead","team leads","takım lider","ekip lider","sync","cross-team","cross team"],
+        "hygiene": [],
+        "readme": "Weekly cross-team sync board (team leads gather each week to sync between teams). WEEKLY (Fri AM) summary. Escalate to DAILY only when critical. Note: this board typically has NO story points."
+      },
+      {
+        "id": "90159399897", "org": "freshsens", "name": "Fundraising",
+        "cadence": "weekly-fri", "depth": "summary", "review_is_done": true, "has_sprint": false,
+        "routing_keywords": ["fundraising","fund raising","funding","investor","yatırım","raise","term sheet","due diligence","zedcadit"],
+        "hygiene": [],
+        "readme": "Baran adds fundraising issues here. WEEKLY (Fri AM) summary. Escalate to DAILY only when critical (e.g. an investor deadline, a term-sheet action on Cem)."
+      },
+      {
+        "id": "901511184184", "org": "freshsens", "name": "Admin",
+        "cadence": "mute", "depth": "none", "review_is_done": true, "has_sprint": false,
+        "routing_keywords": ["admin","legal","finance","hr","contract","invoice"],
+        "hygiene": [],
+        "readme": "Administrative/back-office space. Not in the regular report. Surfaces only via critical escalation. (Cem did not request reporting on this — adjust cadence if that changes.)"
+      },
+      {
+        "id": "90090428426", "org": "gohm", "name": "Management",
+        "cadence": "daily", "depth": "track", "review_is_done": true, "has_sprint": true,
+        "sprint_folder": "90151692710",
+        "routing_keywords": ["gohm","management","yönetim","6g","qtrust","q-trust","celtic","robust6g admin"],
+        "hygiene": ["stale_in_progress"],
+        "readme": "GOHM org's live hub — Management space, which holds GOHM's sprint folder (90151692710). This is where GOHM work actually flows right now. DAILY progress update. Robust6G coordination + incoming Q-TRUST6G land here."
+      },
+      {
+        "id": "90143023495", "org": "diefi", "name": "Development",
+        "cadence": "daily", "depth": "track", "review_is_done": true, "has_sprint": true,
+        "sprint_folder": "90145177889",
+        "routing_keywords": ["diefi","deliverable","wp","eu project","d1.","d2.","d3."],
+        "hygiene": ["stale_in_progress"],
+        "readme": "DIEFI — an EU project of GOHM, its own ClickUp team with a single Development space that holds the DIEFI sprint folder (90145177889). This is the active GOHM-side board (~28 tasks/30d). DAILY progress update. Cem leads this; deliverable deadlines matter."
+      },
+      {
+        "id": "90151309240", "org": "gohm", "name": "Home / Smart-Home",
+        "cadence": "daily", "depth": "summary", "review_is_done": false, "has_sprint": false,
+        "routing_keywords": ["home","loxone","smart home","smart-home","house","renovation","miniserver"],
+        "hygiene": [],
+        "readme": "Cem's personal Home list (Loxone Miniserver smart-home + house renovation). Reported under Personal / Smart Home."
+      }
+    ]
+  },
+
+  "slack": {
+    "_draft": "AUTO-DRAFTED by Sentinel from known channel names — CEM PLEASE CORRECT the tier/org/team of any wrong row. Channels the bot joins that are NOT listed here default to {tier: daily}. Set tier=weekly-fri to move a channel into the Friday block; tier=mute to silence (still escalates on alarm keywords).",
+    "default_tier": "daily",
+    "channels": [
+      { "name": "fs-be",            "org": "freshsens", "team": "Backend",     "tier": "daily" },
+      { "name": "fs-fe",            "org": "freshsens", "team": "Frontend",    "tier": "daily" },
+      { "name": "fs-alerts",        "org": "freshsens", "team": "Dev",         "tier": "daily", "incident": true },
+      { "name": "thingsboard_alarms","org": "freshsens","team": "Ops",         "tier": "daily", "incident": true },
+      { "name": "fs-postharvest",   "org": "freshsens", "team": "Postharvest", "tier": "daily" },
+      { "name": "fs-operations",    "org": "freshsens", "team": "Operations",  "tier": "daily" },
+      { "name": "operation-alerts", "org": "freshsens", "team": "Operations",  "tier": "daily", "incident": true },
+      { "name": "deployments",      "org": "freshsens", "team": "Operations",  "tier": "daily", "incident": true },
+      { "name": "work-orders",      "org": "freshsens", "team": "Operations",  "tier": "daily" },
+      { "name": "produce_alarms",   "org": "freshsens", "team": "Postharvest", "tier": "daily", "incident": true },
+      { "name": "support",          "org": "freshsens", "team": "Operations",  "tier": "daily", "incident": true },
+      { "name": "fs-sales",         "org": "freshsens", "team": "Sales",       "tier": "weekly-fri" },
+      { "name": "web-contacts",     "org": "freshsens", "team": "Sales",       "tier": "weekly-fri" },
+      { "name": "fs-seo",           "org": "freshsens", "team": "Sales",       "tier": "weekly-fri" }
+    ]
+  },
+
+  "gmail": {
+    "_draft": "AUTO-DRAFTED heuristics — CEM PLEASE CONFIRM. Default = daily triage (current behavior, unchanged). 'weekly_senders' are surfaced only in the Friday block unless they hit an escalation rule. Accounts: ca@freshsens.ai (freshsens), cem.ayyildiz@gohm.tech (gohm).",
+    "default_tier": "daily",
+    "weekly_sender_patterns": ["newsletter", "digest", "noreply@.*seo", "marketing@"],
+    "always_daily_keywords": ["invoice overdue", "investor", "customer", "incident", "outage", "urgent", "deadline"]
+  }
+}

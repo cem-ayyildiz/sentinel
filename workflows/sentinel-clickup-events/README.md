@@ -6,11 +6,20 @@ throughput and agent-vs-human attribution are exact — immune to sprint bulk-cl
 
 **Webhook:** `https://flow.gohm.tech/webhook/sentinel-clickup-events`
 Registered as a ClickUp team webhook (FreshSens team `9009068877`) for events
-`taskStatusUpdated` + `taskAssigneeUpdated`.
+`taskStatusUpdated` + `taskAssigneeUpdated` + `taskCommentPosted`.
 
-**Flow:** `CU In` (webhook) → `Parse & Enrich` (one row per history_item, enriched with
-task name/list/points/org via a task GET) → `Insert Events` (Postgres `clickup_events`,
-`ON CONFLICT DO NOTHING`).
+**Flow:** `CU In` (webhook) → `Parse & Enrich` (one row per history_item / comment, enriched
+with task name/list/points/org via a task GET; each row tagged with `_table`) →
+`Route by Table` (Switch on `_table`) →
+  • `_table = clickup_events`   → `Insert Events`   (Postgres `clickup_events`,   `ON CONFLICT DO NOTHING`)
+  • `_table = clickup_comments` → `Insert Comments` (Postgres `clickup_comments`, `ON CONFLICT (comment_id) DO NOTHING`)
+
+**Comments:** every `taskCommentPosted` now writes the full comment to `clickup_comments`
+(commenter, text, `is_agent`, timestamps) — this powers the DAILY "new comments + progress"
+view for the Development space. If the comment also carries a Multica agent marker
+(`MR opened for review`, `synced to Multica`, …) it ALSO emits the agent-lifecycle row into
+`clickup_events`. `org` is resolved from a space→org map (FreshSens / GOHM / DIEFI) mirroring
+`infra/workspaces.json`; before this, GOHM/DIEFI events were mislabeled `freshsens`.
 
 ClickUp assignee history uses `field` = **`assignee_add`** / **`assignee_rem`** (NOT
 `assignee`). Status uses `field` = `status` with `before/after.status`.

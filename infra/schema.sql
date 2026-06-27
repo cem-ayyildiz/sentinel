@@ -111,3 +111,41 @@ CREATE TABLE IF NOT EXISTS clickup_events (
 CREATE INDEX IF NOT EXISTS clickup_events_task ON clickup_events(task_id);
 CREATE INDEX IF NOT EXISTS clickup_events_time ON clickup_events(event_time DESC);
 CREATE UNIQUE INDEX IF NOT EXISTS clickup_events_dedup ON clickup_events(task_id, field, COALESCE(after_val,''), event_time);
+
+-- A human comment captured live from ClickUp (taskCommentPosted webhook). Powers the
+-- DAILY "new comments + progress" view for the Development space. Stored separately from
+-- clickup_events (which is status/assignee/agent transitions) to keep the ledger clean.
+CREATE TABLE IF NOT EXISTS clickup_comments (
+  id            BIGSERIAL PRIMARY KEY,
+  comment_id    TEXT UNIQUE,             -- ClickUp comment id (dedup)
+  task_id       TEXT NOT NULL,
+  task_name     TEXT,
+  org           TEXT,
+  space_id      TEXT,
+  list_id       TEXT,
+  list_name     TEXT,
+  commenter     TEXT,
+  text          TEXT,
+  is_agent      BOOLEAN DEFAULT false,   -- posted by Agent Multica / integration token
+  commented_at  TIMESTAMPTZ,
+  ingested_at   TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS clickup_comments_task ON clickup_comments(task_id);
+CREATE INDEX IF NOT EXISTS clickup_comments_time ON clickup_comments(commented_at DESC);
+CREATE INDEX IF NOT EXISTS clickup_comments_org ON clickup_comments(org, commented_at DESC);
+
+-- Workspace registry: cadence / depth / routing / reporting config per ClickUp space,
+-- Slack channel, and Gmail rule. SOURCE OF TRUTH is infra/workspaces.json; this table is a
+-- mirror (synced by infra/sync-workspaces.py) so Chat and ad-hoc SQL can read the same config.
+CREATE TABLE IF NOT EXISTS workspaces (
+  id          TEXT PRIMARY KEY,         -- clickup space id, 'slack:<channel>', or 'gmail:<rule>'
+  kind        TEXT NOT NULL,            -- 'clickup_space' | 'slack_channel' | 'gmail_rule'
+  org         TEXT,                     -- 'freshsens' | 'gohm' | 'diefi'
+  name        TEXT,
+  cadence     TEXT,                     -- daily | weekly-fri | weekly-mon | mute
+  depth       TEXT,                     -- deep | track | summary | none
+  config      JSONB DEFAULT '{}',       -- full registry entry (routing_keywords, hygiene, readme, ...)
+  updated_at  TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS workspaces_cadence ON workspaces(cadence);
+CREATE INDEX IF NOT EXISTS workspaces_org ON workspaces(org);
