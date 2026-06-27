@@ -140,7 +140,7 @@ Plus a **Chat** assistant (DM it questions / commands).
 | **ClickUp Events (ledger)** | `4kQIG4Dhb7f5edWl` | webhook `sentinel-clickup-events` | Captures status/assignee/comment changes → `clickup_events`. Agent detection + SP auto-estimate. See §6. |
 | **DB Test** | `wefU83D11JiQ44I6` | webhook `sentinel-db-test-001` | Throwaway SQL/DDL runner utility. Not user-facing. |
 
-Source for each lives under `workflows/sentinel-*/` (sanitized).
+Source for each lives under `workflows/sentinel-*/` (sanitized); catalog: `workflows/README.md`.
 
 ---
 

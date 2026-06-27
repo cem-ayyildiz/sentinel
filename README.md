@@ -21,29 +21,64 @@ It is built as an **n8n workflow** driven by Claude, with all integrations done 
 
 ## Architecture
 
-A 9-node pipeline (one n8n workflow, `Sentinel · Daily Briefing`):
+Sentinel is a set of **n8n workflows** backed by **Postgres** and a **Claude CLI** node. The whole
+system is a loop: **signal → decide → act → learn → (smarter next signal)**. A **workspace registry**
+(`infra/workspaces.json` → Postgres) tells every workflow how each ClickUp space / Slack channel / Gmail
+rule should be reported and routed.
 
+```mermaid
+flowchart TB
+    subgraph SRC["📥 Sources"]
+      direction LR
+      GM["Gmail ×2"]
+      CAL["Calendar ×2"]
+      NOTES["Gemini notes"]
+      SL["Slack (all channels)"]
+      CU["ClickUp FS · GOHM · DIEFI"]
+    end
+
+    REG[("🗂️ Workspace Registry<br/>cadence · depth · routing")]
+    PG[("🗄️ Postgres<br/>signals · decisions · outcomes<br/>briefings · profile · actions<br/>clickup_events · clickup_comments")]
+
+    SRC --> BRIEF["☀️ Daily Briefing — 07:00<br/>collect · tier by registry · reason"]
+    REG -. tiers / depth .-> BRIEF
+    BRIEF --> PG
+    BRIEF --> DM["💬 Slack DM<br/>company-grouped briefing"]
+
+    DM --> QUEUE["🎚️ Decision Queue<br/>learning-gated triage"]
+    QUEUE --> CAP["✅ Decision Capture<br/>reaction / reply → verdict"]
+    CAP --> PG
+    PG -. recent decisions + profile .-> BRIEF
+    PG --> PROF["🧠 Profile (weekly)<br/>rewrite how-Cem-decides"]
+    PROF --> PG
+
+    CAP --> ROUTER["📋 Issue Router<br/>draft → registry-route → approve"]
+    REG -. target space .-> ROUTER
+    ROUTER --> TASK["🆕 ClickUp task"]
+    CAP --> MAIL["🧹 Mail Cleaner<br/>archive skips (reversible)"]
+
+    CU --> LEDGER["📒 ClickUp Events (webhook)<br/>status · assignee · comments"]
+    LEDGER --> PG
+    DM <--> CHAT["🤖 Chat — ask Sentinel"]
+    REG -. boards .-> CHAT
+    PG --> ROAD["🗺️ Roadmap Report (weekly)<br/>2026 goals vs ClickUp"]
+    ROAD --> DM
 ```
-Schedule 07:00 ─┐
-Webhook (test) ─┴► Set Date Range ► Collect All Sources ► Recall Yesterday
-   ► Build Analyst Prompt ► Sentinel Analyst (Claude) ► Parse Analyst Output
-   ► Execute Mail Cleaning ► Send to Cem
-```
 
-| Stage | What it does |
-|---|---|
-| **Collect All Sources** | One node, per-source `try/catch`, pulls every data source below. |
-| **Recall Yesterday** | Reads the previous briefing from the DM → continuity. |
-| **Build Analyst Prompt** | Numbers inbox emails with stable tags (`FS3`, `GO5`) so the model references them safely; builds a deep analytical prompt with the org map. |
-| **Sentinel Analyst** | Claude produces the briefing prose **plus** a machine-readable JSON actions block. |
-| **Parse Analyst Output** | Splits prose from actions; maps archive tags → real Gmail message IDs (no hallucinated IDs). |
-| **Execute Mail Cleaning** | Archives flagged FYI email (remove `INBOX` + add `Sentinel/FYI-Archived`). Reversible, never deletes. |
-| **Send to Cem** | Posts to the Slack DM; chunks long briefings at paragraph boundaries with overflow as threaded replies. |
+- **Daily Briefing** (07:00 IST) gathers everything, tiers ClickUp/Slack by the registry, reasons like an
+  analyst, and DMs a company-grouped briefing — pre-classifying new items by how Cem has decided before.
+- **Decision Queue → Capture → Profile** is the learning loop: surfaced items get a verdict (reaction/reply);
+  verdicts become a compact profile that sharpens tomorrow's triage.
+- **Issue Router** turns decisions into registry-routed ClickUp tasks (Cem approves with ✅).
+- **ClickUp Events** ledger captures live status/assignee/comment changes (exact weekly story points + the
+  daily "new comments" view). **Chat** answers "who's doing what?". **Roadmap Report** tracks 2026 goals.
 
-> **Design choice:** everything uses Code nodes + `this.helpers.httpRequest` with refresh tokens / API keys, because n8n's native credential nodes proved unreliable. Each source is isolated so one failure never kills the briefing.
+> **Design choice:** Code nodes + `this.helpers.httpRequest` with refresh tokens / API keys throughout
+> (native n8n credential nodes proved unreliable); each source is isolated so one failure never kills the run.
 
-Deep detail and the (secret-redacted) node source live in
-[`workflows/sentinel-daily-briefing/`](workflows/sentinel-daily-briefing/).
+The full per-workflow catalog (triggers, flows, IDs, files) lives in
+[`workflows/README.md`](workflows/README.md); architecture rationale in
+[`SENTINEL_DESIGN.md`](SENTINEL_DESIGN.md).
 
 ---
 
@@ -127,22 +162,22 @@ See [`todo.md`](todo.md) for the full roadmap.
 
 ```
 sentinel/
-├── README.md                         ← this file
-├── todo.md                           ← roadmap & status
-├── scripts/                          ← one-time OAuth setup helpers
-│   ├── gmail-auth.sh
-│   └── calendar-auth.sh
+├── README.md                  ← this file (overview + architecture)
+├── SENTINEL_DESIGN.md         ← architecture & rationale (diagrams)
+├── SENTINEL_STATUS.md         ← live status, IDs, gotchas, handoff (§9 = registry/cadence)
+├── todo.md                    ← roadmap & status
+├── scripts/                   ← one-time OAuth setup helpers (gmail/calendar)
+├── infra/
+│   ├── schema.sql             ← Postgres schema
+│   ├── workspaces.json        ← workspace registry (cadence/depth/routing — source of truth)
+│   ├── sync-workspaces.py     ← sync the registry into the `workspaces` table
+│   ├── refresh-roadmap.py     ← refresh the 2026 roadmap from Miro
+│   └── SERVER_SETUP.md        ← server / Postgres / Slack-app setup
 ├── workflows/
-│   └── sentinel-daily-briefing/      ← the workflow (secret-redacted source)
-│       ├── README.md
-│       ├── collector.js
-│       ├── recall-yesterday.js
-│       ├── build-prompt.js
-│       ├── parse-output.js
-│       ├── execute-mail-cleaning.js
-│       ├── send-to-slack.js
-│       └── deploy.py
-└── credentials/                      ← gitignored (OAuth tokens, keys)
+│   ├── README.md              ← workflow catalog (all workflows, triggers, flows, IDs)
+│   └── sentinel-*/            ← per-workflow secret-redacted source + deploy.py
+└── credentials/               ← gitignored (OAuth tokens, keys)
 ```
 
-Runs on n8n at `flow.gohm.tech`. `deploy.py` rebuilds/activates the workflow via the n8n public API (fill in the redacted secrets first).
+Runs on n8n at `flow.gohm.tech`. Each workflow's `deploy.py`/`build.py` rebuilds/activates it via the
+n8n public API (fill in the redacted secrets first). See [`workflows/README.md`](workflows/README.md).
