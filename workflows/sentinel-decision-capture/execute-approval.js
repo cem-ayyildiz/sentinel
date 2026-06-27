@@ -8,7 +8,21 @@ const post = (text) => this.helpers.httpRequest({ method: 'POST', url: 'https://
   headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' }, body: { channel: CH, text, unfurl_links: false }, json: true });
 if (!approved) { try { await post('🚫 Task skipped.'); } catch (e) {} return [{ json: { id: action.id, status: 'rejected', url: null } }]; }
 const p = typeof action.payload === 'string' ? JSON.parse(action.payload) : action.payload;
-const list = listMap[action.org] || listMap.freshsens;
+// Registry routing: if the proposal chose a target space, create in that space's active-sprint
+// (or first) list. Falls back to the per-org Sentinel Inbox list when no space was resolved.
+let list = listMap[action.org] || listMap.freshsens;
+if (p && p.space_id) {
+  try {
+    const J = (r) => typeof r === 'string' ? JSON.parse(r) : r;
+    const H = { Authorization: CK };
+    let lists = (J(await this.helpers.httpRequest({ method: 'GET', url: `https://api.clickup.com/api/v2/space/${p.space_id}/list?archived=false`, headers: H })).lists) || [];
+    const folders = (J(await this.helpers.httpRequest({ method: 'GET', url: `https://api.clickup.com/api/v2/space/${p.space_id}/folder?archived=false`, headers: H })).folders) || [];
+    for (const f of folders) lists = lists.concat(f.lists || []);
+    const now = Date.now();
+    const pick = lists.find(l => l.start_date && l.due_date && Number(l.start_date) <= now && now <= Number(l.due_date)) || lists[0];
+    if (pick) list = pick.id;
+  } catch (e) { /* keep inbox fallback */ }
+}
 let url = null, status = 'done';
 try {
   const r = await this.helpers.httpRequest({ method: 'POST', url: `https://api.clickup.com/api/v2/list/${list}/task`,

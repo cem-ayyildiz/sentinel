@@ -8,13 +8,21 @@ const orgs = [
   { key:'GOHM',      sprintFolder:'90151692710' },
   { key:'DIEFI',     sprintFolder:'90145177889' },
 ];
-// Named boards Cem may reference without a URL -> space id; we resolve its current list.
-const NAMED = [
-  { keys:['team lead','team leads','takım lider','ekip lider','team-lead'], space:'90155478263' },
-  { keys:['management','yönetim'], space:'90010053606' },
-  { keys:['sales','marketing','ph & ops','ph&ops','operations'], space:'90152680846' },
-  { keys:['fundraising','yatırım','fon raise'], space:'90159399897' },
-];
+// Named boards Cem may reference without a URL -> space id, built from the workspace registry
+// (Load Registry node) so every space's routing_keywords are honored — not a hardcoded few.
+let REG = [];
+try { REG = ($('Load Registry').first().json.workspaces) || []; } catch (e) {}
+let NAMED = REG.filter(r => r.kind === 'clickup_space')
+  .map(r => ({ keys: ((r.config && r.config.routing_keywords) || []).map(k => k.toLowerCase()), space: r.id, name: r.name, org: r.org }))
+  .filter(n => n.keys.length);
+if (!NAMED.length) {   // fallback if the registry didn't load
+  NAMED = [
+    { keys:['team lead','team leads','takım lider','ekip lider','team-lead'], space:'90155478263' },
+    { keys:['management','yönetim'], space:'90010053606' },
+    { keys:['sales','marketing','ph & ops','ph&ops','operations'], space:'90152680846' },
+    { keys:['fundraising','yatırım','fon raise'], space:'90159399897' },
+  ];
+}
 const loadTasks = async (lid) => {
   let tasks = []; let page = 0;
   while (page < 12) {
