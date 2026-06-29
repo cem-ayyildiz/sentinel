@@ -26,8 +26,19 @@ const renderEmails = (arr, prefix, account) => {
     return `[${tag}] *${e.subject}* — from ${e.from}\n     (${flags})\n     ${e.snippet}`;
   }).join('\n');
 };
-const emailsFsBlock = renderEmails(d.emailsFs, 'FS', 'fs');
-const emailsGohmBlock = renderEmails(d.emailsGohm, 'GO', 'gohm');
+// Inbox = Cem's curated focus; the "net" items arrived recently but he already moved them OUT of
+// the inbox — shown only because they look urgent (safety net). Render them separately.
+const fsFocus = (d.emailsFs || []).filter(e => !e.outsideInbox);
+const fsNet   = (d.emailsFs || []).filter(e => e.outsideInbox);
+const goFocus = (d.emailsGohm || []).filter(e => !e.outsideInbox);
+const goNet   = (d.emailsGohm || []).filter(e => e.outsideInbox);
+const emailsFsBlock = renderEmails(fsFocus, 'FS', 'fs');
+const emailsGohmBlock = renderEmails(goFocus, 'GO', 'gohm');
+const netFsBlock = renderEmails(fsNet, 'FSX', 'fs');
+const netGohmBlock = renderEmails(goNet, 'GOX', 'gohm');
+// Cem's recent DM messages — his stated daily focus lives here (chat + briefing replies).
+const cemChat = d.cemChat || [];
+const cemChatBlock = cemChat.length ? cemChat.map(m => `- ${m.text}`).join('\n') : '_none_';
 
 const fmtEvents = (arr) => (arr && arr.length)
   ? arr.map(e => `- ${e.start.substring(0, 16).replace('T', ' ')} — *${e.summary}*${e.location ? ' @ ' + e.location : ''}${e.attendees ? ' | with: ' + e.attendees : ''}`).join('\n')
@@ -134,13 +145,22 @@ Profile: ${profileStr}
 Recent decisions:
 ${decisionsStr}
 ╚════════════════════════════════════════════════════════════╝
-When an inbox email or task closely matches how Cem has decided before, pre-classify it: in Inbox Triage note "(likely <verdict> — matches past)". Fold high-confidence always_skip items straight into Archive Suggestions.
+When an inbox email or task closely matches how Cem has decided before, pre-classify it: in Inbox Triage note "(likely <verdict> — matches past)". Cem now curates his own inbox — do NOT propose archiving anything; just triage what he chose to keep in the inbox.
 
-═══════════ INBOX — FreshSens (ca@freshsens.ai) ═══════════
+═══════════ 🎯 CEM'S RECENT MESSAGES TO YOU (DM — his latest stated daily focus / priorities live here) ═══════════
+${cemChatBlock}
+
+═══════════ INBOX — FreshSens (ca@freshsens.ai) — Cem's curated focus ═══════════
 ${emailsFsBlock}
 
-═══════════ INBOX — GOHM (cem.ayyildiz@gohm.tech) ═══════════
+═══════════ INBOX — GOHM (cem.ayyildiz@gohm.tech) — Cem's curated focus ═══════════
 ${emailsGohmBlock}
+
+═══════════ ⚠️ SAFETY NET — arrived in the last 2 days but NOT in the inbox (Cem already archived/sorted them); shown ONLY because they look urgent ═══════════
+FreshSens:
+${netFsBlock}
+GOHM:
+${netGohmBlock}
 
 ═══════════ CALENDAR — FreshSens (yesterday → today) ═══════════
 ${fmtEvents(d.calFs)}
@@ -187,6 +207,7 @@ ${d.errors && d.errors.length ? '⚠️ Collection issues: ' + d.errors.join('; 
 Write in Slack markdown (*bold*, not **). Start DIRECTLY with the cockpit (no title/date line — one is prepended). STRUCTURE: a short cross-org COCKPIT, then ONE self-contained block per company. Use a divider line "───────────" between the cockpit and each company block. Keep each company's content fully inside its block — do NOT mix orgs.
 
 ══════ COCKPIT (cross-org — keep tight) ══════
+*🎯 Today's Focus* — if Cem named a focus in HIS RECENT MESSAGES (e.g. "focus today: …", or a priority he stated in a briefing reply), LEAD with it: "You said you'd focus on X — here's where X stands" + the 1-2 concrete next steps. If he named none, omit this line entirely.
 *🔁 Since Yesterday* — vs yesterday: STILL OPEN (now older/riskier), RESOLVED, NEW. 3–5 lines. If no prior briefing, "First run — baseline established."
 *📌 Today's Schedule* — all orgs on ONE timeline; each meeting tagged 🔴 must-attend / 🟡 optional / ⚪ routine AND [FS]/[GOHM]/[DIEFI]; note prep; resolve conflicts.
 *🔥 Top Priorities* (max 6) — ranked ACROSS all orgs (this is the one cross-org ranking), each tagged [FS]/[GOHM]/[DIEFI]. CONNECT signals; PULL IN any ⚡ escalations. Reference email tags like [FS3].
@@ -198,13 +219,13 @@ Write in Slack markdown (*bold*, not **). Start DIRECTLY with the cockpit (no ti
 *Board hygiene* — surface the ⚠️ flags (stale in-progress, missing story points, nothing in review) as a gentle nudge — the team doesn't always keep the board honest.
 *Management* — one line: what Baran/Cem moved.
 *🚨 Incidents* — correlate FreshSens Slack alarms into incidents (severity, root-cause hypothesis, owner, next action): #fs-alerts, #thingsboard_alarms, #operation-alerts, #deployments, #produce_alarms, #support. If quiet, say so.
-${isFriday ? '*📊 Weekly Review* — completed issues + story points PER PERSON this week (from the weekly data above; actor-credited), the Multica Agent\'s deliveries (separate line, do not double-count), and a short Sales / Team Leads / Fundraising summary. Mirror Cem\'s sheet people: Gabby, Sevval, Sina Can, Sultan, Muhammad, Multica Agent.\n' : ''}*📨 Inbox — FreshSens* (ca@freshsens.ai) — triage the FS-tagged emails: (a) *Reply needed* (max 5) — sender + ask + [tag]; (b) *Delegate* — who owns it; (c) *Archive (FYI)* — count + safe FS tags.
+${isFriday ? '*📊 Weekly Review* — completed issues + story points PER PERSON this week (from the weekly data above; actor-credited), the Multica Agent\'s deliveries (separate line, do not double-count), and a short Sales / Team Leads / Fundraising summary. Mirror Cem\'s sheet people: Gabby, Sevval, Sina Can, Sultan, Muhammad, Multica Agent.\n' : ''}*📨 Inbox — FreshSens* (ca@freshsens.ai) — Cem curates this inbox himself, so treat every FS email as kept-on-purpose: (a) *Reply needed* (max 5) — sender + ask + [tag]; (b) *Delegate* — who owns it. Do NOT suggest archiving. If any ⚠️ SAFETY NET item is FreshSens, flag it: "arrived but not in your inbox — looks urgent, did you mean to clear it?"
 
 ───────────
 ══════ 🛰️ GOHM ══════
 *Projects* — Management hub (Robust6G coordination), Robust6G deadlines (D1.4 etc.), Q-TRUST6G (incoming): status, what moved, what needs Cem.
 *🚨 Incidents* — correlate GOHM alarms (#gohm-alerts, e.g. Meysu flapping) into incidents. If quiet, say so.
-*📨 Inbox — GOHM* (cem.ayyildiz@gohm.tech) — triage the GO-tagged emails: reply / delegate / archive (count + safe GO tags). NOTE: DIEFI-related mail also arrives here — route DIEFI items to the DIEFI block below.
+*📨 Inbox — GOHM* (cem.ayyildiz@gohm.tech) — Cem curates this inbox; triage the GO-tagged emails: reply / delegate (do NOT suggest archiving). Flag any GOHM ⚠️ SAFETY NET item the same way. NOTE: DIEFI-related mail also arrives here — route DIEFI items to the DIEFI block below.
 
 ───────────
 ══════ 🔬 DIEFI ══════
@@ -221,8 +242,7 @@ Rules: direct, no filler, no restating raw data. Tight lines (1–2 each). NEVER
 
 After the prose, on a new line, output EXACTLY one fenced JSON block:
 \`\`\`json
-{"archive_tags": ["FS3","GO5"], "open_issues": ["one-line each: items that must carry to tomorrow"]}
-\`\`\`
-Only genuinely-safe FYI tags in archive_tags (NEVER security/login/account). Be conservative.`;
+{"open_issues": ["one-line each: items that must carry to tomorrow"]}
+\`\`\``;
 
 return [{ json: { prompt, todayDate: d.todayDate, emailIndex } }];

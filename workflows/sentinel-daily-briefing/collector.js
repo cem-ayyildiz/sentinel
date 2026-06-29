@@ -43,23 +43,27 @@ const header = (msg, name) => {
 };
 
 // ===== EMAIL (both accounts) =====
+// New model: Cem curates his OWN inbox (Sentinel no longer auto-archives). So the inbox IS the
+// focus — report on whatever he left there. PLUS a safety net: scan mail that arrived in the
+// last 2 days but is already OUT of the inbox (he archived/sorted it) and surface only the ones
+// that look urgent, in case he cleared something important. Escalation keywords come from the
+// registry's gmail block (always_daily_keywords).
+const gmailCfg = ((((($('Load Registry').first().json || {}).workspaces) || []).find(r => r.kind === 'gmail_rule')) || {}).config || {};
+const ESC_KW = (gmailCfg.always_daily_keywords || ['investor', 'customer', 'urgent', 'deadline', 'incident', 'outage', 'invoice overdue']).map(k => String(k).toLowerCase());
+
 const fetchEmails = async (cid, secret, rt, label) => {
   const token = await googleToken(cid, secret, rt);
-  // Scan the recent inbox (new + recent backlog) so triage has real material to clean.
-  const q = encodeURIComponent('in:inbox');
-  const list = await this.helpers.httpRequest({
-    method: 'GET',
-    url: `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=25&q=${q}`,
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  const listData = typeof list === 'string' ? JSON.parse(list) : list;
-  const ids = (listData.messages || []).map(m => m.id);
-  const msgs = await Promise.all(ids.map(id => this.helpers.httpRequest({
-    method: 'GET',
+  const listIds = async (q, max) => {
+    const r = await this.helpers.httpRequest({ method: 'GET',
+      url: `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=${max}&q=${encodeURIComponent(q)}`,
+      headers: { Authorization: `Bearer ${token}` } });
+    const d = typeof r === 'string' ? JSON.parse(r) : r;
+    return (d.messages || []).map(m => m.id);
+  };
+  const meta = async (ids) => Promise.all(ids.map(id => this.helpers.httpRequest({ method: 'GET',
     url: `https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}?format=metadata`
       + `&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date&metadataHeaders=List-Unsubscribe`,
-    headers: { Authorization: `Bearer ${token}` },
-  }).then(r => typeof r === 'string' ? JSON.parse(r) : r).catch(() => null)));
+    headers: { Authorization: `Bearer ${token}` } }).then(r => typeof r === 'string' ? JSON.parse(r) : r).catch(() => null)));
   const catOf = (labels) => {
     if (labels.includes('CATEGORY_PROMOTIONS')) return 'promotions';
     if (labels.includes('CATEGORY_SOCIAL')) return 'social';
@@ -67,22 +71,35 @@ const fetchEmails = async (cid, secret, rt, label) => {
     if (labels.includes('CATEGORY_FORUMS')) return 'forums';
     return 'primary';
   };
-  return msgs.filter(Boolean).map(m => {
+  const shape = (m, outsideInbox) => {
     const labels = m.labelIds || [];
     const from = header(m, 'From');
     return {
-      id: m.id,
-      from,
+      id: m.id, from,
       subject: header(m, 'Subject') || '(no subject)',
       snippet: (m.snippet || '').substring(0, 220),
       unread: labels.includes('UNREAD'),
       important: labels.includes('IMPORTANT'),
       starred: labels.includes('STARRED'),
       category: catOf(labels),
-      bulk: !!header(m, 'List-Unsubscribe'),                       // newsletter / bulk sender
+      bulk: !!header(m, 'List-Unsubscribe'),
       automated: /no-?reply|noreply|notifications?@|mailer-daemon|donotreply|do-not-reply|@.*\.(atlassian|github|gitlab)\b/i.test(from),
+      outsideInbox: !!outsideInbox, escalated: false,
     };
-  });
+  };
+  // 1) FOCUS = whatever Cem left in the inbox
+  const inbox = (await meta(await listIds('in:inbox', 25))).filter(Boolean).map(m => shape(m, false));
+  // 2) SAFETY NET = recently-arrived mail already out of the inbox; keep only urgent-looking ones
+  let net = [];
+  try {
+    const outside = (await meta(await listIds('newer_than:2d -in:inbox -in:sent -in:draft -in:spam -in:trash -in:chats', 25)))
+      .filter(Boolean).map(m => shape(m, true));
+    net = outside.filter(e => {
+      const hay = (e.subject + ' ' + e.from + ' ' + e.snippet).toLowerCase();
+      return e.important || e.starred || ESC_KW.some(k => hay.includes(k));
+    }).map(e => ({ ...e, escalated: true })).slice(0, 8);
+  } catch (e) { /* safety net is best-effort */ }
+  return inbox.concat(net);
 };
 
 try { out.emailsFs = await fetchEmails(FS.id, FS.secret, RT.fsGmail, 'FS'); }
@@ -90,6 +107,16 @@ catch (e) { out.emailsFs = []; out.errors.push('FS Gmail: ' + e.message); }
 
 try { out.emailsGohm = await fetchEmails(GOHM.id, GOHM.secret, RT.gohmGmail, 'GOHM'); }
 catch (e) { out.emailsGohm = []; out.errors.push('GOHM Gmail: ' + e.message); }
+
+// ===== CEM'S DIRECT MESSAGES (DM) — where his stated daily focus lives (chat + briefing replies) =====
+out.cemChat = [];
+try {
+  const r = await this.helpers.httpRequest({ method: 'GET',
+    url: 'https://slack.com/api/conversations.history?channel=D0BBRKKPGUE&limit=20',
+    headers: { Authorization: `Bearer ${SLACK_TOKEN}` }, json: true });
+  out.cemChat = (r.messages || []).filter(m => !(m.bot_id || m.app_id) && m.text)
+    .reverse().map(m => ({ ts: m.ts, text: String(m.text).substring(0, 300) }));
+} catch (e) { out.errors.push('Cem DM: ' + e.message); }
 
 // ===== CALENDAR (both accounts) =====
 const fetchEvents = async (cid, secret, rt, calId) => {

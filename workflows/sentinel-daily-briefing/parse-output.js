@@ -22,10 +22,8 @@ if (matches.length) {
   if (m) { try { actions = JSON.parse(m[0]); prose = raw.replace(m[0], '').trim(); } catch (e) {} }
 }
 
-// Map archive tags -> real {account, id}, dropping anything unknown (no hallucinated ids).
-const archive = (actions.archive_tags || [])
-  .map(t => ({ tag: t, ...(emailIndex[t] || {}) }))
-  .filter(x => x.id && x.account);
+// Auto-archiving retired — Cem curates his own inbox now, so Sentinel never archives mail.
+const archive = [];
 
 return [{ json: {
   briefing: prose,
