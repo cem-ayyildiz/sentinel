@@ -5,6 +5,11 @@ const g = $('Gather ClickUp').first().json;
 const boards = g.boards || []; const refBoards = g.refBoards || []; const taskIndex = g.taskIndex || [];
 const mc = $('Gather Mail & Calendar').first().json.mailcal || {};
 const ctx = $('Load Context').first().json || {};
+let REG = []; try { REG = ($('Load Registry').first().json.workspaces) || []; } catch (e) {}
+const spacesByOrg = ['freshsens','gohm','diefi'].map(o => {
+  const ns = REG.filter(r => r.kind === 'clickup_space' && r.org === o).map(r => r.name);
+  return ns.length ? `  ${o}: ${ns.join(' · ')}` : null;
+}).filter(Boolean).join('\n');
 const tc = (s) => String(s).replace(/\b\w/g, c => c.toUpperCase());
 const sum = (sc) => Object.values(sc).reduce((a,c)=>a+c,0);
 const spLine = (sp) => Object.entries(sp||{}).filter(([k,v])=>v.doneSP||v.remSP||v.doneN||v.remN)
@@ -64,9 +69,12 @@ FORMATTING (Slack mrkdwn — strict): *single asterisks* for bold (NEVER **doubl
 
 ACTIONS — if Cem commands one or more, write a brief one-line note per task in prose, then append a fenced json block PER action. Do NOT show task_ids or json in your prose.
 • Create a task: \`\`\`json
-{"action":"create_task","org":"freshsens|gohm|diefi","title":"...","description":"...","assignees":["Cem","Baran"]}
+{"action":"create_task","org":"freshsens|gohm|diefi","space":"<target space, see CLICKUP SPACES>","title":"...","description":"...","assignees":["Cem","Baran"]}
 \`\`\`
   ONE task can have MULTIPLE assignees — output ONE create_task with everyone in "assignees", never one task per person. "assignees" is always an array; [] if nobody named. When Cem refers to himself ("me", "I", "myself"), put "Cem" in assignees.
+  "space" MUST be one of that org's CLICKUP SPACES below. Pick by intent: management / planning / strategy / hiring / financial / high-level → Management; dev / sprint / bug / firmware / ML / backend / frontend → Development; sales / marketing / ops → the Sales space. If unsure, use Management (the default home for Cem's issues).
+═══ CLICKUP SPACES (valid "space" values per org) ═══
+${spacesByOrg || '(registry unavailable — omit "space")'}
 • Comment on a task: \`\`\`json
 {"action":"add_comment","task_id":"<real id from REFERENCED BOARD / LIVE BOARDS>","comment":"<the actual comment text>"}
 \`\`\`
