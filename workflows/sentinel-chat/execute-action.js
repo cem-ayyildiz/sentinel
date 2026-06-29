@@ -23,7 +23,8 @@ const resolveAssignee = async (name, org) => {
   try {
     if (!_members) { const r = await http({ method:'GET', url:'https://api.clickup.com/api/v2/team', headers:{Authorization:CK} }); _members = (typeof r==='string'?JSON.parse(r):r).teams || []; }
     const team = _members.find(t => t.id === teamId[org]); const users = (team?.members || []).map(m => m.user);
-    const n = name.toLowerCase().trim();
+    let n = name.toLowerCase().trim();
+    if (['me','myself','i','cem','ca','cem ayyildiz'].includes(n)) n = 'cem';   // self-alias -> Cem Ayyildiz
     const hit = users.find(u => (u.username||'').toLowerCase().includes(n.split(' ')[0]) || n.includes((u.username||'').toLowerCase().split(' ')[0]));
     return hit ? hit.id : null;
   } catch (e) { return null; }

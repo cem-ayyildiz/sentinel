@@ -66,7 +66,7 @@ ACTIONS — if Cem commands one or more, write a brief one-line note per task in
 • Create a task: \`\`\`json
 {"action":"create_task","org":"freshsens|gohm|diefi","title":"...","description":"...","assignees":["Cem","Baran"]}
 \`\`\`
-  ONE task can have MULTIPLE assignees — output ONE create_task with everyone in "assignees", never one task per person. "assignees" is always an array; [] if nobody named.
+  ONE task can have MULTIPLE assignees — output ONE create_task with everyone in "assignees", never one task per person. "assignees" is always an array; [] if nobody named. When Cem refers to himself ("me", "I", "myself"), put "Cem" in assignees.
 • Comment on a task: \`\`\`json
 {"action":"add_comment","task_id":"<real id from REFERENCED BOARD / LIVE BOARDS>","comment":"<the actual comment text>"}
 \`\`\`
