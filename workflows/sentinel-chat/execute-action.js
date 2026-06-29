@@ -88,10 +88,19 @@ for (const action of actions) {
       const names = Array.isArray(action.assignees) ? action.assignees.filter(Boolean) : (action.assignee ? [action.assignee] : []);
       const ids = []; const named = [];
       for (const nm of names) { const id = await resolveAssignee(nm, org); if (id && !ids.includes(id)) { ids.push(id); named.push(nm); } }
+      const fnames = Array.isArray(action.followers) ? action.followers.filter(Boolean) : (action.follower ? [action.follower] : []);
+      const fids = []; const fnamed = [];
+      for (const nm of fnames) { const id = await resolveAssignee(nm, org); if (id && !fids.includes(id)) { fids.push(id); fnamed.push(nm); } }
       const body = { name: action.title, description: `${action.description || ''}\n\n_(via Sentinel chat)_` };
       if (ids.length) body.assignees = ids;
       const r = await http({ method:'POST', url:`https://api.clickup.com/api/v2/list/${list}/task`, headers:{Authorization:CK,'Content-Type':'application/json'}, body, json:true });
-      results.push(`✅ Created${tgt.space?` in ${tgt.space}`:''}${named.length?` (assigned to ${named.join(', ')})`:''}: <${r.url}|${(action.title||'').substring(0,40)}>`);
+      // Add followers as watchers (the create payload ignores watchers; PUT add does work). Assignees are auto-watchers, so skip those.
+      const extra = fids.filter(id => !ids.includes(id));
+      if (extra.length && r && r.id) {
+        try { await http({ method:'PUT', url:`https://api.clickup.com/api/v2/task/${r.id}`, headers:{Authorization:CK,'Content-Type':'application/json'}, body:{ watchers:{ add: extra, rem: [] } }, json:true }); }
+        catch (e) { fnamed.length = 0; results.push(`⚠️ couldn't add followers: ${e.message}`); }
+      }
+      results.push(`✅ Created${tgt.space?` in ${tgt.space}`:''}${named.length?` (assigned to ${named.join(', ')})`:''}${fnamed.length?` · following: ${fnamed.join(', ')}`:''}: <${r.url}|${(action.title||'').substring(0,40)}>`);
     } else if (action.action === 'add_comment' && action.task_id && action.comment) {
       await http({ method:'POST', url:`https://api.clickup.com/api/v2/task/${action.task_id}/comment`, headers:{Authorization:CK,'Content-Type':'application/json'}, body:{comment_text:action.comment, notify_all:false}, json:true });
       results.push(`✅ Comment → <https://app.clickup.com/t/${action.task_id}|${action.task_id}>`);

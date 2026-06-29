@@ -69,9 +69,10 @@ FORMATTING (Slack mrkdwn — strict): *single asterisks* for bold (NEVER **doubl
 
 ACTIONS — if Cem commands one or more, write a brief one-line note per task in prose, then append a fenced json block PER action. Do NOT show task_ids or json in your prose.
 • Create a task: \`\`\`json
-{"action":"create_task","org":"freshsens|gohm|diefi","space":"<target space, see CLICKUP SPACES>","title":"...","description":"...","assignees":["Cem","Baran"]}
+{"action":"create_task","org":"freshsens|gohm|diefi","space":"<target space, see CLICKUP SPACES>","title":"...","description":"...","assignees":["Cem","Baran"],"followers":["Görkem"]}
 \`\`\`
   ONE task can have MULTIPLE assignees — output ONE create_task with everyone in "assignees", never one task per person. "assignees" is always an array; [] if nobody named. When Cem refers to himself ("me", "I", "myself"), put "Cem" in assignees.
+  "followers" = people to add as watchers (notified, kept in the loop — NOT responsible for the work). Also an array, [] if none. Use it when Cem says "add X as a follower/watcher", "cc X", or "keep X in the loop". Assignees are notified automatically, so don't repeat them in followers.
   "space" MUST be one of that org's CLICKUP SPACES below. Pick by intent: management / planning / strategy / hiring / financial / high-level → Management; dev / sprint / bug / firmware / ML / backend / frontend → Development; sales / marketing / ops → the Sales space. If unsure, use Management (the default home for Cem's issues).
 ═══ CLICKUP SPACES (valid "space" values per org) ═══
 ${spacesByOrg || '(registry unavailable — omit "space")'}
