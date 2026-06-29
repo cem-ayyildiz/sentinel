@@ -10,16 +10,26 @@ const post = (text) => this.helpers.httpRequest({ method: 'POST', url: 'https://
 let REG = []; try { REG = ($('Load Registry').first().json.workspaces) || []; } catch (e) {}
 const SPACES = REG.filter(r => r.kind === 'clickup_space');
 const DEF = { freshsens: '90010053606', gohm: '90090428426', diefi: '90143023495' };
+// Word-boundary match: short/generic dev keywords ("ml","ota","api","bug","model")
+// must NOT substring-hit ordinary management words (html, total, capital, budget,
+// "operating model") — that was routing freshsens issues to Development by accident.
+const kwHit = (hay, k) => {
+  const kk = String(k).toLowerCase().trim();
+  if (!kk) return false;
+  const re = new RegExp('(^|[^a-z0-9])' + kk.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '([^a-z0-9]|$)');
+  return re.test(hay);
+};
 const pickSpace = (s) => {
   const hay = ((s.title || '') + ' ' + (s.body || '') + ' ' + (s.reason || '')).toLowerCase();
   const orgSp = SPACES.filter(x => x.org === s.org);
+  const def = orgSp.find(x => x.id === DEF[s.org]) || orgSp[0] || null;
   let best = null, sc = 0;
   for (const sp of orgSp) {
     const kws = (sp.config && sp.config.routing_keywords) || [];
-    const n = kws.filter(k => hay.includes(String(k).toLowerCase())).length;
-    if (n > sc) { sc = n; best = sp; }
+    const n = kws.filter(k => kwHit(hay, k)).length;
+    // strictly more keyword hits wins; on a tie the default space (Management) keeps it.
+    if (n > sc || (n === sc && n > 0 && sp === def)) { sc = n; best = sp; }
   }
-  const def = orgSp.find(x => x.id === DEF[s.org]) || orgSp[0] || null;
   return { space: best || def, ambiguous: !best };
 };
 const out = [];

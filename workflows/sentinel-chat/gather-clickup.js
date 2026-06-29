@@ -101,9 +101,17 @@ const tryAddList = async (lid, hintName) => {
 const ids = Array.from(new Set((hay.match(/\d{8,13}/g)||[]))).slice(0, 8);
 for (const id of ids) { if (refBoards.length >= 2) break; await tryAddList(id); }
 // 2b) named boards (only if nothing explicit matched, or to add the named one)
+// Word-boundary match so short keywords ("ml","ota","api") don't substring-hit ordinary
+// words in the message/conversation (html, total, capital) and pull in the wrong board.
+const kwHit = (k) => {
+  const kk = String(k).toLowerCase().trim();
+  if (!kk) return false;
+  const re = new RegExp('(^|[^a-z0-9])' + kk.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '([^a-z0-9]|$)');
+  return re.test(hay);
+};
 for (const nb of NAMED) {
   if (refBoards.length >= 2) break;
-  if (!nb.keys.some(k => hay.includes(k))) continue;
+  if (!nb.keys.some(kwHit)) continue;
   try {
     let lists = (J(await http(`https://api.clickup.com/api/v2/space/${nb.space}/list?archived=false`)).lists)||[];
     const folders = (J(await http(`https://api.clickup.com/api/v2/space/${nb.space}/folder?archived=false`)).folders)||[];
