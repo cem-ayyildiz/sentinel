@@ -11,6 +11,12 @@ ${JSON.stringify(profile)}
 
 Verdicts: do_now (needs him today) · do_later (him, not today) · delegate_person · delegate_agent · watch (track, no action) · skip (noise) · done (already handled / irrelevant).
 
+ALWAYS-SURFACE (NEVER auto_handle these — they are actionable even if they look like routine portal mail):
+- Payment / invoice / fee / subscription / balance-due / overdue notices (TR: ödeme, fatura, ücret, aidat, bakiye, vade, son ödeme).
+- Deadlines, suspension, cancellation, service-termination or account-closure threats (TR: son tarih, ihtar, askıya alma, iptal, fesih, kapatılacak).
+- Legal / contractual / regulatory / official-authority notices (e.g. PTT / KEP, tax office, bank, government, notary).
+For any of these: auto_handle=false, verdict = do_now if a deadline is within ~2 weeks else do_later, and put the DEADLINE + amount in the hint (e.g. "PTT KEP fee 215 TL — pay by ~10 Jul or the account is closed"). When unsure whether something is one of these, surface it.
+
 Candidates:
 ${lines || '(none)'}
 

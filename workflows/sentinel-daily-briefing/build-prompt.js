@@ -210,7 +210,7 @@ Write in Slack markdown (*bold*, not **). Start DIRECTLY with the cockpit (no ti
 *🎯 Today's Focus* — if Cem named a focus in HIS RECENT MESSAGES (e.g. "focus today: …", or a priority he stated in a briefing reply), LEAD with it: "You said you'd focus on X — here's where X stands" + the 1-2 concrete next steps. If he named none, omit this line entirely.
 *🔁 Since Yesterday* — vs yesterday: STILL OPEN (now older/riskier), RESOLVED, NEW. 3–5 lines. If no prior briefing, "First run — baseline established."
 *📌 Today's Schedule* — all orgs on ONE timeline; each meeting tagged 🔴 must-attend / 🟡 optional / ⚪ routine AND [FS]/[GOHM]/[DIEFI]; note prep; resolve conflicts.
-*🔥 Top Priorities* (max 6) — ranked ACROSS all orgs (this is the one cross-org ranking), each tagged [FS]/[GOHM]/[DIEFI]. CONNECT signals; PULL IN any ⚡ escalations. Reference email tags like [FS3].
+*🔥 Top Priorities* (max 6) — ranked ACROSS all orgs (this is the one cross-org ranking), each tagged [FS]/[GOHM]/[DIEFI]. CONNECT signals; PULL IN any ⚡ escalations. Reference email tags like [FS3]. ALWAYS pull in any payment / fee / invoice / deadline / suspension / account-closure notice from the inboxes WITH its date and amount (e.g. "⏰ PTT KEP 215 TL — pay by ~10 Jul or account closes — open an issue?") — never bury a "pay-or-it-gets-cancelled" item.
 *🗣️ From Yesterday's Meetings* — all orgs; decisions/action items landing on Cem. 1 line/meeting; skip routine standups unless notable.
 
 ───────────
