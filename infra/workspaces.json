@@ -72,6 +72,22 @@
         "readme": "DIEFI — an EU project of GOHM, its own ClickUp team with a single Development space that holds the DIEFI sprint folder (90145177889). This is the active GOHM-side board (~28 tasks/30d). DAILY progress update. Cem leads this; deliverable deadlines matter."
       },
       {
+        "id": "901511313936", "org": "gohm", "name": "gohm-diefi",
+        "cadence": "daily", "depth": "track", "review_is_done": true, "has_sprint": true,
+        "sprint_folder": "901516610795",
+        "routing_keywords": ["gohm-diefi","gohm diefi"],
+        "hygiene": ["stale_in_progress"],
+        "readme": "GOHM-side DIEFI space (lives in the GOHM ClickUp team, NOT the DIEFI team — API queries must go through team 42085420). Created ~Jul 2026 with its own Sprint Folder (901516610795); still empty. DAILY track once work lands. Note the DIEFI team's own Development space (90143023495) remains the primary DIEFI board."
+      },
+      {
+        "id": "901511300841", "org": "gohm", "name": "Villa Kurt Development",
+        "cadence": "daily", "depth": "summary", "review_is_done": false, "has_sprint": true,
+        "sprint_folder": "901516610863",
+        "routing_keywords": ["villa kurt development","villakurt dev","home dev"],
+        "hygiene": [],
+        "readme": "Development side of Cem's personal Villa Kurt project (split out from the villakurt space). Created ~Jul 2026 with its own Sprint Folder (901516610863); still empty. Reported under Personal / Smart Home alongside villakurt."
+      },
+      {
         "id": "90151309240", "org": "gohm", "name": "villakurt",
         "cadence": "daily", "depth": "summary", "review_is_done": false, "has_sprint": true,
         "sprint_folder": "90151882929",

@@ -100,6 +100,11 @@ Plus a **Chat** assistant (DM it questions / commands).
 - FreshSens spaces: **Development `90090136601`**, Management `90010053606`,
   Sales/Marketing/PH&Ops `90152680846`, **Team Leads `90155478263`**, Admin `901511184184`,
   Fundraising `90159399897`.
+- GOHM-team spaces: Management `90090428426`, villakurt `90151309240`,
+  **gohm-diefi `901511313936`** (sprint folder `901516610795`) and
+  **Villa Kurt Development `901511300841`** (sprint folder `901516610863`) — both added
+  2026-07-02, created empty; gohm-diefi is DIEFI work but lives in the GOHM team, so
+  API queries use team `42085420`. DIEFI team has only Development `90143023495`.
 - **Active-sprint folders** (Sentinel finds the list where `start_date<=now<=due_date`):
   FreshSens `90090412752`, GOHM `90151692710`, DIEFI `90145177889`.
   (GOHM/DIEFI currently have **no active sprint** → fall back to latest.)
@@ -253,7 +258,8 @@ summary), `routing_keywords`, `hygiene` flags, authored `readme`. **Edit the JSO
 
 **Spaces:** FreshSens Development (daily/deep), Management (daily/track, default issue landing),
 Sales+PH&Ops / Team Leads / Fundraising (weekly-fri), Admin (mute); GOHM Management (daily, the live
-hub) + villakurt/Home (personal); DIEFI Development (daily). Org→team: fs `9009068877`, gohm
+hub) + gohm-diefi (daily/track, new+empty) + villakurt/Home + Villa Kurt Development (personal,
+new+empty); DIEFI Development (daily). Org→team: fs `9009068877`, gohm
 `42085420`, diefi `9014647941`. Sprint folders: fs `90090412752`, gohm `90151692710`, diefi `90145177889`.
 
 **Daily Briefing (`UR3IjaOiHX0guopW`):**

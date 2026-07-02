@@ -286,6 +286,8 @@ if (!registry.length) {
     { id:'901511184184', org:'freshsens', name:'Admin', cadence:'mute', depth:'none', config:{} },
     { id:'90090428426', org:'gohm', name:'Management', cadence:'daily', depth:'track', config:{ has_sprint:true } },
     { id:'90143023495', org:'diefi', name:'Development', cadence:'daily', depth:'track', config:{ has_sprint:true } },
+    { id:'901511313936', org:'gohm', name:'gohm-diefi', cadence:'daily', depth:'track', config:{ has_sprint:true } },
+    { id:'901511300841', org:'gohm', name:'Villa Kurt Development', cadence:'daily', depth:'summary', config:{ has_sprint:true } },
     { id:HOME_SPACE, org:'gohm', name:'Home', cadence:'daily', depth:'summary', config:{} },
   ];
   out.errors.push('ClickUp: registry not loaded from DB — used embedded fallback');
