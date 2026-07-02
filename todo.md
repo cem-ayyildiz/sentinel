@@ -23,6 +23,9 @@ IDs/gotchas in `SENTINEL_STATUS.md` (registry/cadence work is §9).
       decision_profile, actions, roadmap, clickup_events, **clickup_comments**, **workspaces**
 - [x] **Ingest** (normalize+dedup), **Post Queue** (learning-gated triage), **Decision Capture**
       (Slack reactions/replies → verdicts), **Profile** (weekly learned "how Cem decides")
+      — ⚠️ **Post Queue DEACTIVATED 2026-07-02 per Cem**: no per-item triage DMs (overdue-task
+      pings, then "Auto-handled" mail summaries — "I don't want Sentinel to coordinate mails");
+      briefing is the single daily surface. Mail Cleaner/Profile idle for mail as a result.
 - [x] **Roadmap Report** (Mon) — 2026 Miro goals vs ClickUp
 - [x] **Chat assistant** — DM Q&A + commands (board counts, create task, comment)
 
