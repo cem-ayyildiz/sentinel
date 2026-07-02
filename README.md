@@ -101,13 +101,14 @@ The prose briefing is **grouped by company**: a short cross-org cockpit, then on
 self-contained block per company. **Delivery:** the cockpit is the main Slack message
 (hard-capped, the only part Cem must read); the company blocks arrive as threaded replies.
 
-**Cockpit (cross-org, ≤300 words, no item repeated across sections):**
-1. **🎯 YOUR DAY** — Cem's personal top 3–5 actions, rubric-ranked, linked, time-estimated (≤60 min total); honors any focus he stated in DM/thread replies
-2. **🔁 Since Yesterday** — from the stored open-issue ledger: still-open (real day-counts) / resolved / new
-3. **📌 Today's Schedule** — one timeline, each meeting tagged 🔴/🟡/⚪ and [FS]/[GOHM]/[DIEFI]
-4. **🔥 Top Priorities** — ranked across all orgs with 2026-goal tags, escalations pulled in
+**Cockpit (cross-org, ≤300 words, partitioned by actor — an item appears exactly once):**
+1. **🎯 YOUR DAY** — every action Cem personally takes today (3–7, ⚡ = <5 min), rubric-ranked, linked, time-estimated (≤60 min total); honors any focus he stated in DM/thread replies
+2. **📡 RADAR** — top risks/opportunities where someone *else* acts: owner → next step + "intervene if …", with 2026-goal tags; escalations pulled in
+3. **🔁 Since Yesterday** — from the stored open-issue ledger: still-open (real day-counts) / resolved / new
+4. **📌 Today's Schedule** — weekly/one-off/external/decision meetings only; routine dailies are skipped (mentioned only as a venue to raise something)
 5. **⏳ Overdue (yours)** — top 3 with do/reschedule/delegate verdicts; Friday sweep over the rest
-6. **🗣️ From Yesterday's Meetings** — decisions/actions from the Gemini notes (says so explicitly when notes are missing)
+
+**Thread (posted as replies):** **🗣️ From Yesterday's Meetings** (says so explicitly when notes are missing), then the company blocks.
 
 **Per-company blocks:**
 - **🏭 FreshSens** — Development by team (ML/HW/FW/Backend/Software/PH) + new task comments +

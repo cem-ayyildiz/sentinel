@@ -345,3 +345,17 @@ Cem's feedback on the first live v3 briefing:
 3. **Cockpit tightened to ≤300 words** (was 400 target, 517 actual → cockpit spilled into the
    thread and Cem asked whether the report was "divided in half"). Schedule = one line per
    meeting; total briefing cap 1000 words. Cockpit must fit ONE Slack message.
+
+### §10.2 — v3.2 cockpit partition (2026-07-02, Cem's second feedback round)
+Duplicates persisted (İsmail Abi Maaş appeared 4×) because the STRUCTURE demanded it: YOUR DAY and
+Top Priorities used the same ranking rubric → same items; Quick Wins ⊆ YOUR DAY by definition.
+Fix = partition by ACTOR, not two rankings of the same list:
+- **🎯 YOUR DAY** — every Cem-action today (3–7, ⚡ marks <5-min items; absorbs old Quick Wins —
+  section deleted). The ONLY place Cem-actions appear.
+- **📡 RADAR** (replaces 🔥 Top Priorities) — top ≤5 items where someone ELSE acts:
+  "[ORG] item (day N) — owner → next step; intervene if <condition>" + goal tag. Never overlaps YOUR DAY.
+- **📌 Schedule**: routine recurring dailies/standups SKIPPED (Cem's ask — "Firmware Daily" noise);
+  a daily may appear only as a venue ("08:50 — raise X"). Only weekly/one-off/external/decision meetings listed.
+- Company blocks: may not restate cockpit items at all; each email appears exactly once
+  (DIEFI mail → DIEFI block only). Final self-check instruction: scan for repeated links, delete
+  lower-precedence occurrence (YOUR DAY > RADAR > Overdue > Schedule > Since Yesterday > blocks).
