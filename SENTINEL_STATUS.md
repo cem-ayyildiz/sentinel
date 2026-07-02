@@ -1,8 +1,8 @@
 # Sentinel — Status & Handoff
 
 > Single source of truth for picking up work on **Sentinel**, Cem Ayyildiz's personal AI
-> chief-of-staff. Read this first. Complements `SENTINEL_DESIGN.md` (architecture rationale).
-> Last updated: 2026-06-26.
+> chief-of-staff. Read this first. Complements `SENTINEL_DESIGN.md` (architecture rationale)
+> and `CLAUDE.md` (deploy/test working agreement). Last updated: 2026-07-02 (§10 = briefing v3).
 
 ---
 
@@ -293,3 +293,41 @@ is created in that space's active-sprint/first list (falls back to per-org Senti
 - To test the briefing without side effects: set `disabled:true` on Insert Signals / Execute Mail
   Cleaning / Send to Cem / Store Briefing / Trigger Queue, trigger `sentinel-test-trigger-001`, read the
   execution's node outputs, then re-enable. (Capture the exec by id>base & finished — the analyst step is slow.)
+
+---
+
+## 10. Briefing v3 — prioritization overhaul (built 2026-07-02)
+
+Trigger: Cem's feedback — "not happy with report quality, cannot prioritize my tasks." Audit found:
+his DM focus was NEVER captured (0 msgs in 12 runs — thread replies invisible to
+`conversations.history`), continuity/day-counts were LLM-guessed from prose, 49 overdue Cem-tasks
+were collected but had no output section, no links, no goal alignment, 1200-word cap ignored daily.
+
+**Changes (all live in `UR3IjaOiHX0guopW`, repo synced):**
+- **collector.js** — cemChat now walks DM *threads* via `conversations.replies` (top 6 threads,
+  last 3 days, timestamps); meeting-notes **gap alarm** (≥2 meetings yesterday + 0 notes → errors);
+  `spaceTasks` takes `sinceMs` (Home/personal fetches ALL open, `sinceMs:0`); sprint fallback
+  prefers most recently *started* list (was: farthest future).
+- **Load Context** (PG) — added `(SELECT left(doc,3000) FROM roadmap WHERE id=1) AS roadmap`.
+- **build-prompt.js (v3)** — renders: 2026 GOALS block; **OPEN ISSUE LEDGER** from
+  `last_briefing.open_issues` with day-counts computed in code (`first_seen` → "day N");
+  Slack links `<url|text>` on all tasks/emails (Gmail deep links via
+  `mail.google.com/mail/?authuser=<acct>#all/<id>`); overdue total. New output template:
+  cockpit = 🎯 YOUR DAY (3–5 personal actions, rubric: prod impact → external deadline →
+  unblocks person → 2026 goal; links + ⏱; ≤60 min) · 🔁 Since Yesterday (ledger-driven) ·
+  📌 Schedule · 🔥 Top Priorities (goal tags [G: …]/[off-roadmap]) · ⏳ Overdue top-3 with
+  do/reschedule/delegate verdicts (+ Friday sweep) · 🗣️ Meetings. Cockpit ≤400 words, total ≤1100.
+  JSON contract now structured: `{"open_issues":[{title, org, severity, owner, next_action,
+  first_seen}]}` — first_seen carried verbatim day-to-day (ledger discipline in prompt).
+- **parse-output.js** — normalizes ledger entries (tolerates strings/missing fields;
+  first_seen defaults to today; max 20).
+- **send-to-slack.js** — splits at the first `───────────` divider: cockpit = main DM message
+  (+ "_🧵 full company detail in the thread_"), company blocks = threaded replies.
+
+**Deploy notes:** collector + send-to-slack patched via surgical block replacement (live nodes
+carry real secrets); build-prompt/parse-output full overwrite; Load Context query PUT. Tested via
+`sentinel-test-trigger-001` with the 5 side-effect nodes disabled, then re-enabled.
+
+**Known follow-ups (in todo.md):** meeting-notes pipeline reliability (root cause), transcript
+decision log (principle #4), `/focus` command, split analyst (per-company extraction + synthesis),
+fallback LLM credential.

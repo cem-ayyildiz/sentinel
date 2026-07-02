@@ -1,6 +1,6 @@
 # Sentinel — Roadmap & Status
 
-_Last updated: 2026-06-27_
+_Last updated: 2026-07-02_
 
 Sentinel runs Cem's 3-part vision end-to-end: cut noise (daily briefing + learning-gated
 triage + mail cleaning), team roadmap/SP reports, and Slack-approved issue creation — plus a
@@ -45,6 +45,26 @@ IDs/gotchas in `SENTINEL_STATUS.md` (registry/cadence work is §9).
 - [x] **Registry-driven routing** — Issue Router + Chat resolve target boards from the registry
       (default Management, ask when ambiguous)
 
+### Briefing v3 — prioritization overhaul (2026-07-02) — see SENTINEL_STATUS §10
+- [x] **🎯 YOUR DAY** — cockpit leads with Cem's personal top 3–5 actions, rubric-ranked
+      (production impact → external deadline → unblocks person → 2026 goal), linked, ⏱-estimated
+- [x] **Stateful open-issue ledger** — structured `open_issues` (org/severity/owner/next_action/
+      first_seen) stored per briefing and fed back; day-counts computed in code, not by the LLM
+- [x] **Overdue-debt triage** — top 3 of Cem's overdue tasks daily with do/reschedule/delegate
+      verdicts + Friday sweep over the rest (49 overdue were previously invisible)
+- [x] **2026-goal alignment** — Miro roadmap added to daily Load Context; Top Priorities carry
+      [G: …] / [off-roadmap] tags
+- [x] **Cem's focus actually captured** — DM *thread replies* now read (conversations.replies);
+      was 0 messages in every prior run because history API skips threads
+- [x] **Clickable links everywhere** — ClickUp task URLs + Gmail deep links (authuser) on every
+      actionable line; LLM instructed to copy, never invent
+- [x] **Cockpit = main message, company detail = thread** — send-to-slack splits at the first
+      divider; cockpit hard-capped at 400 words
+- [x] **Meeting-notes gap alarm** — flags "N meetings yesterday, 0 Gemini notes" instead of
+      failing silently (notes were missing on most days)
+- [x] **Collector fixes** — Personal/Home shows ALL open tasks (was: only touched <7d);
+      sprint fallback prefers the most recently started sprint (was: farthest future)
+
 ---
 
 ## 🔧 Production hygiene (small, do soon)
@@ -55,6 +75,17 @@ IDs/gotchas in `SENTINEL_STATUS.md` (registry/cadence work is §9).
 ---
 
 ## 🚀 Next capabilities (in value order)
+- [ ] **Investigate the meeting-notes pipeline** — Jul 1 had 13 meetings and 0 Gemini notes; check
+      Gemini note-taking is enabled on the recurring dailies + whether notes land in the organizer's
+      Drive instead of Cem's (the new gap-alarm will now show how often this bites)
+- [ ] **Decision log from transcripts** (design principle #4) — extract technical decisions +
+      rationale from meeting notes into a durable, queryable log (the `decisions` table currently
+      holds triage verdicts, which is a different thing)
+- [ ] **`/focus` chat command** — explicit way to set today's focus from the DM (stored in PG,
+      read by Load Context) as a stronger channel than free-text thread replies
+- [ ] **Split the analyst** — per-company extraction (structured JSON) + small synthesis call for
+      cockpit/YOUR DAY; the single 65k-char mega-prompt dilutes attention
+- [ ] **Fallback LLM credential** — everything rides on one Claude CLI credential today
 - [ ] **Map remaining Slack channels** in the registry (~12 unmapped default to daily) — mark weekly/muted
 - [ ] **Explicit Gmail weekly-sender folding** (optional; daily bulk/newsletter triage already covers most)
 - [ ] **Draft replies** — save ready Gmail drafts for reply-needed mail (nothing auto-sends)

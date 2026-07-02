@@ -111,11 +111,25 @@ catch (e) { out.emailsGohm = []; out.errors.push('GOHM Gmail: ' + e.message); }
 // ===== CEM'S DIRECT MESSAGES (DM) — where his stated daily focus lives (chat + briefing replies) =====
 out.cemChat = [];
 try {
-  const r = await this.helpers.httpRequest({ method: 'GET',
-    url: 'https://slack.com/api/conversations.history?channel=D0BBRKKPGUE&limit=20',
+  const dmGet = (url) => this.helpers.httpRequest({ method: 'GET', url,
     headers: { Authorization: `Bearer ${SLACK_TOKEN}` }, json: true });
-  out.cemChat = (r.messages || []).filter(m => !(m.bot_id || m.app_id) && m.text)
-    .reverse().map(m => ({ ts: m.ts, text: String(m.text).substring(0, 300) }));
+  const hist = await dmGet('https://slack.com/api/conversations.history?channel=D0BBRKKPGUE&limit=15');
+  const top = hist.messages || [];
+  let mine = top.filter(m => !(m.bot_id || m.app_id) && m.text);
+  // Cem replies to briefings IN THREADS — conversations.history never returns thread
+  // replies, so walk recent threads too; that is where his stated focus actually lives.
+  for (const t of top.filter(m => (m.reply_count || 0) > 0).slice(0, 6)) {
+    try {
+      const rr = await dmGet(`https://slack.com/api/conversations.replies?channel=D0BBRKKPGUE&ts=${t.ts}&limit=40`);
+      mine = mine.concat((rr.messages || []).filter(m => m.ts !== t.ts && !(m.bot_id || m.app_id) && m.text));
+    } catch (e) { /* best-effort per thread */ }
+  }
+  const dmCutoff = (Date.now() - 72 * 3600 * 1000) / 1000; // only the last 3 days matter as "focus"
+  out.cemChat = mine.filter(m => parseFloat(m.ts) >= dmCutoff)
+    .sort((a, b) => parseFloat(a.ts) - parseFloat(b.ts)).slice(-15)
+    .map(m => ({ ts: m.ts,
+      when: new Date(parseFloat(m.ts) * 1000).toISOString().substring(0, 16).replace('T', ' '),
+      text: String(m.text).substring(0, 300) }));
 } catch (e) { out.errors.push('Cem DM: ' + e.message); }
 
 // ===== CALENDAR (both accounts) =====
@@ -181,6 +195,17 @@ try {
     out.meetingNotes.push(n);
   }
 } catch (e) { out.meetingNotes = []; out.errors.push('Meeting notes: ' + e.message); }
+
+// Silent-failure alarm: meetings happened yesterday but zero Gemini notes were found.
+try {
+  const yd = dates.yesterdayDate;
+  const meetingsYday = [...(out.calFs || []), ...(out.calGohm || [])]
+    .filter(e => (e.start || '').substring(0, 10) === yd && e.attendees).length;
+  out.notesGap = { meetingsYesterday: meetingsYday, notesFound: (out.meetingNotes || []).length };
+  if (meetingsYday >= 2 && !(out.meetingNotes || []).length) {
+    out.errors.push(`Meeting notes: ${meetingsYday} meetings yesterday but 0 Gemini notes found — note capture may be broken (check Gemini note-taking on the recurring meetings / Drive ownership)`);
+  }
+} catch (e) { /* diagnostics only */ }
 
 // ===== SLACK (auto-discover every channel; registry tiers daily vs weekly + tags org) =====
 // Daily-tier + incident channels always appear; weekly-fri channels only on Friday (or when a
@@ -284,10 +309,10 @@ const taskLite = (t) => ({ id:t.id, url:t.url||null, name:(t.name||'').substring
   priority:(t.priority||{}).priority||'none' });
 
 // space task fetch (one call, recently-updated + open)
-const spaceTasks = async (org, spaceId, { openClosed = true } = {}) => {
+const spaceTasks = async (org, spaceId, { openClosed = true, sinceMs = activityCutoff } = {}) => {
   const team = ORG_TEAM[org];
   const url = `https://api.clickup.com/api/v2/team/${team}/task`
-    + `?space_ids%5B%5D=${spaceId}&date_updated_gt=${activityCutoff}&order_by=updated`
+    + `?space_ids%5B%5D=${spaceId}${sinceMs ? `&date_updated_gt=${sinceMs}` : ''}&order_by=updated`
     + `&subtasks=true&include_closed=${openClosed}&page=0`;
   return (J(await http(url)).tasks) || [];
 };
@@ -297,7 +322,12 @@ const sprintBoard = async (org) => {
   const lists = (J(await http(`https://api.clickup.com/api/v2/folder/${folder}/list?archived=false`)).lists) || [];
   let sprint = lists.find(l => l.start_date && l.due_date && Number(l.start_date)<=now && now<=Number(l.due_date));
   const active = !!sprint;
-  if (!sprint) { const fut = lists.filter(l=>l.start_date).sort((a,b)=>Number(b.start_date)-Number(a.start_date)); sprint = fut[0]; }
+  if (!sprint) {
+    // fall back to the most recently STARTED sprint; only if none has started yet, the nearest future one
+    const started = lists.filter(l => l.start_date && Number(l.start_date) <= now).sort((a, b) => Number(b.start_date) - Number(a.start_date));
+    const future  = lists.filter(l => l.start_date && Number(l.start_date) > now).sort((a, b) => Number(a.start_date) - Number(b.start_date));
+    sprint = started[0] || future[0];
+  }
   if (!sprint) return null;
   let tasks = [], page = 0;
   while (page < 8) {
@@ -341,9 +371,9 @@ for (const s of cuSpaces) {
   const org = s.org, depth = s.depth, cadence = s.cadence, cfg = s.config || {};
   const label = `${org}/${s.name}`;
   try {
-    // Home → personal view
+    // Home → personal view (ALL open tasks — an untouched open task must not vanish after 7d)
     if (s.id === HOME_SPACE) {
-      const tasks = await spaceTasks(org, s.id, { openClosed:false });
+      const tasks = await spaceTasks(org, s.id, { openClosed:false, sinceMs: 0 });
       out.personal = tasks.slice(0, 20).map(taskLite);
       out.clickup.personal = out.personal;
       continue;

@@ -1,6 +1,7 @@
 // ===== Build Analyst Prompt — deep reasoning over all collected data =====
-// ClickUp is now registry-tiered: Development (deep) + Management daily, GOHM/DIEFI daily,
-// Sales/Team-Leads/Fundraising weekly (Fridays) with critical items escalated any day.
+// v3 (2026-07-02): stateful OPEN ISSUE LEDGER (ages computed in code, not by the LLM),
+// YOUR DAY personal action block, overdue-debt triage, 2026 roadmap alignment, and
+// clickable Slack links on every actionable item.
 const d = $('Collect All Sources').first().json;
 const ctx = $('Load Context').first().json || {};
 const profile = ctx.profile || { always_skip: [], always_do: [], delegate_map: {} };
@@ -8,7 +9,13 @@ const recentDecisions = ctx.recent_decisions || [];
 const cu = d.clickup || { daily: [], weekly: [], escalations: [], personal: [] };
 const isFriday = !!cu.isFriday;
 
-// ---- Number emails with stable tags so the model can reference them for archiving ----
+// ---- Slack-link helpers: the model must be able to COPY real links, never invent them ----
+const esc = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\|/g, '/');
+const link = (url, text) => url ? `<${url}|${esc(text)}>` : esc(text);
+const gmailUrl = (account, id) =>
+  `https://mail.google.com/mail/?authuser=${account === 'fs' ? 'ca@freshsens.ai' : 'cem.ayyildiz@gohm.tech'}#all/${id}`;
+
+// ---- Number emails with stable tags so the model can reference them without hallucinating ids ----
 const emailIndex = {};
 const renderEmails = (arr, prefix, account) => {
   if (!arr || !arr.length) return '_none_';
@@ -23,7 +30,7 @@ const renderEmails = (arr, prefix, account) => {
       e.bulk ? 'bulk/newsletter' : '',
       e.automated ? 'automated/no-reply' : '',
     ].filter(Boolean).join(', ');
-    return `[${tag}] *${e.subject}* — from ${e.from}\n     (${flags})\n     ${e.snippet}`;
+    return `[${tag}] ${link(gmailUrl(account, e.id), e.subject)} — from ${esc(e.from)}\n     (${flags})\n     ${e.snippet}`;
   }).join('\n');
 };
 // Inbox = Cem's curated focus; the "net" items arrived recently but he already moved them OUT of
@@ -36,9 +43,27 @@ const emailsFsBlock = renderEmails(fsFocus, 'FS', 'fs');
 const emailsGohmBlock = renderEmails(goFocus, 'GO', 'gohm');
 const netFsBlock = renderEmails(fsNet, 'FSX', 'fs');
 const netGohmBlock = renderEmails(goNet, 'GOX', 'gohm');
-// Cem's recent DM messages — his stated daily focus lives here (chat + briefing replies).
+// Cem's recent DM messages — top-level AND thread replies (his stated daily focus lives here).
 const cemChat = d.cemChat || [];
-const cemChatBlock = cemChat.length ? cemChat.map(m => `- ${m.text}`).join('\n') : '_none_';
+const cemChatBlock = cemChat.length
+  ? cemChat.map(m => `- [${m.when || ''}] ${m.text}`).join('\n')
+  : '_none in the last 3 days_';
+
+// ---- OPEN ISSUE LEDGER — yesterday's structured open_issues, ages computed HERE (authoritative) ----
+const ledgerArr = (ctx.last_briefing && Array.isArray(ctx.last_briefing.open_issues)) ? ctx.last_briefing.open_issues : [];
+const ageOf = (fs) => { const t = Date.parse(fs); return isNaN(t) ? null : Math.max(0, Math.round((Date.parse(d.todayDate) - t) / 86400000)); };
+const ledgerBlock = ledgerArr.length ? ledgerArr.map(it => {
+  if (typeof it === 'string') return `- ${it} (age unknown — legacy entry; assign first_seen when you carry it)`;
+  const a = ageOf(it.first_seen);
+  return `- [${(it.org || '?').toUpperCase()}]${a != null ? ` *day ${a + 1}*` : ''}${it.severity ? ` (${it.severity})` : ''} ${it.title}`
+    + `${it.owner ? ` — owner: ${it.owner}` : ''}${it.next_action ? ` — next: ${it.next_action}` : ''}`
+    + ` (first_seen ${it.first_seen || '?'})`;
+}).join('\n') : '_(ledger empty — first structured run; seed it from today\'s data)_';
+
+// ---- 2026 strategic goals (Miro roadmap, loaded by Load Context) ----
+const roadmapBlock = (ctx.roadmap && String(ctx.roadmap).trim())
+  ? String(ctx.roadmap).trim().substring(0, 3000)
+  : '_(roadmap not loaded)_';
 
 const fmtEvents = (arr) => (arr && arr.length)
   ? arr.map(e => `- ${e.start.substring(0, 16).replace('T', ' ')} — *${e.summary}*${e.location ? ' @ ' + e.location : ''}${e.attendees ? ' | with: ' + e.attendees : ''}`).join('\n')
@@ -55,7 +80,7 @@ const fmtSlack = (arr) => {
   ).join('\n\n') || '_all channels quiet_';
 };
 
-// ---- ClickUp renderers over the new registry-tiered structure ----
+// ---- ClickUp renderers over the registry-tiered structure (now with links) ----
 const fmtStatus = (t) => Object.entries(t || {}).map(([s, n]) => `${s}:${n}`).join(' · ');
 const fmtPeople = (people, withSP) => Object.entries(people || {})
   .sort((a, b) => (b[1].done + b[1].active) - (a[1].done + a[1].active)).slice(0, 8)
@@ -77,13 +102,13 @@ const fmtDev = (s) => {
   return `*${s.sprint}* — ${s.total} tasks · ${fmtStatus(s.statusTotals)}\n`
     + `   People (✓done/•active/SP): ${fmtPeople(s.people, true)}\n`
     + (hyg.length ? `   ⚠️ BOARD HYGIENE: ${hyg.join(' | ')}\n` : '')
-    + `   Tasks:\n` + (s.tasks || []).slice(0, 26).map(t => `     ${t.done ? '✓' : '•'} ${t.name} | ${t.status} | ${t.assignee}${t.points != null ? ` (${t.points}sp)` : ''}`).join('\n');
+    + `   Tasks:\n` + (s.tasks || []).slice(0, 26).map(t => `     ${t.done ? '✓' : '•'} ${link(t.url, t.name)} | ${t.status} | ${t.assignee}${t.points != null ? ` (${t.points}sp)` : ''}`).join('\n');
 };
 const fmtTrack = (s, label) => {
   if (!s) return `_${label}: no activity in last 7d_`;
   return `*${label}* — ${s.active} in flight / ${s.completed} done (7d, ${s.movedLast7d} moved)`
     + (Object.keys(s.people || {}).length ? `\n   ${fmtPeople(s.people)}` : '')
-    + `\n` + (s.tasks || []).slice(0, 10).map(t => `     ${t.done ? '✓' : '•'} ${t.name} | ${t.status} | ${t.assignee}`).join('\n');
+    + `\n` + (s.tasks || []).slice(0, 10).map(t => `     ${t.done ? '✓' : '•'} ${link(t.url, t.name)} | ${t.status} | ${t.assignee}`).join('\n');
 };
 const fmtComments = (org) => {
   const cs = (ctx.dev_comments || []).filter(c => !org || c.org === org);
@@ -93,7 +118,7 @@ const fmtComments = (org) => {
 const fmtEsc = () => {
   const e = cu.escalations || [];
   if (!e.length) return '_none_';
-  return e.map(x => `- [${x.why}] *${x.name}* (${x.org}/${x.space}) — ${x.status}${x.due ? `, due ${x.due}` : ''}, ${x.assignee}`).join('\n');
+  return e.map(x => `- [${x.why}] ${link(x.url, x.name)} (${x.org}/${x.space}) — ${x.status}${x.due ? `, due ${x.due}` : ''}, ${x.assignee}`).join('\n');
 };
 const fmtWeekly = () => {
   const sp = (ctx.weekly_sp || []).filter(r => r.person);
@@ -108,16 +133,16 @@ const fmtWeekly = () => {
   return out.join('\n');
 };
 const fmtPersonal = (cu.personal && cu.personal.length)
-  ? cu.personal.map(t => `- ${(t.name || '').substring(0, 72)} | ${t.status}${t.due ? ' | due ' + new Date(t.due).toLocaleDateString('en-GB') : ''}${t.assignee && t.assignee !== 'unassigned' ? ' | ' + t.assignee : ''}`).join('\n')
+  ? cu.personal.map(t => `- ${link(t.url, (t.name || '').substring(0, 72))} | ${t.status}${t.due ? ' | due ' + new Date(t.due).toLocaleDateString('en-GB') : ''}${t.assignee && t.assignee !== 'unassigned' ? ' | ' + t.assignee : ''}`).join('\n')
   : '_none_';
 
 const cuOver = (org) => (d.clickupOverdue || []).find(c => c.org === org) || { count: 0, tasks: [] };
 const fmtOverdue = (arr) => (arr && arr.length)
-  ? arr.map(t => `- [${t.priority}] ${(t.name || '').substring(0, 60)} | due ${t.due}`).join('\n')
+  ? arr.map(t => `- [${t.priority}] ${link(t.url, (t.name || '').substring(0, 60))} | ${t.status} | due ${t.due}`).join('\n')
   : '_none_';
 const oFs = cuOver('FreshSens'), oGohm = cuOver('GOHM'), oDiefi = cuOver('DIEFI');
+const overdueTotal = (oFs.count || 0) + (oGohm.count || 0) + (oDiefi.count || 0);
 
-const yesterday = (ctx.last_briefing && ctx.last_briefing.prose) ? ctx.last_briefing.prose : '_(no prior briefing yet — first run)_';
 const profileStr = JSON.stringify(profile);
 const decisionsStr = recentDecisions.length
   ? recentDecisions.slice(0, 60).map(r => `- [${r.verdict}] ${r.type}/${r.org || '?'}: ${r.title}${r.reason ? ' — ' + r.reason : ''}`).join('\n')
@@ -125,7 +150,9 @@ const decisionsStr = recentDecisions.length
 
 const prompt = `You are Sentinel — chief-of-staff AI for Cem Ayyildiz: CTO of FreshSens (deep-tech agritech/post-harvest sensing startup), GM of GOHM (telecom/6G R&D), lead on DIEFI (EU research project). Today is ${d.todayDate} (${cu.weekdayName || ''}).
 
-You are NOT a summarizer. You are an analyst. Read everything below, then REASON: correlate signals across sources, weigh what matters, track continuity from yesterday, and decide concrete actions. Be specific — real names, subjects, task titles, channel names.
+You are NOT a summarizer. You are an analyst. Read everything below, then REASON: correlate signals across sources, weigh what matters, track continuity via the OPEN ISSUE LEDGER, and decide concrete actions. Be specific — real names, subjects, task titles, channel names.
+
+LINK RULE (mandatory): items in the data below carry real Slack links in the form <url|text>. When you reference a task or email in 🎯 YOUR DAY, 🔥 Top Priorities, ⏳ Overdue or ✅ Quick Wins, COPY its link exactly as given so Cem can click straight through. NEVER invent or alter a URL; if an item has no link, plain text is fine.
 
 ORG MAP — organize the briefing around Cem's real ClickUp workspace structure:
 • *FreshSens* (CTO) — reported by SPACE on a cadence:
@@ -136,8 +163,12 @@ ORG MAP — organize the briefing around Cem's real ClickUp workspace structure:
 • *DIEFI* (EU project of GOHM) — DAILY: its Development space; Cem leads it, deliverable deadlines matter.
 • *Personal / Smart Home* — GOHM "Home" space (Loxone + house).
 
-╔═══════════ YESTERDAY'S BRIEFING (for continuity) ═══════════╗
-${yesterday}
+╔═══════════ 2026 STRATEGIC GOALS (Miro roadmap — rank priorities AGAINST these) ═══════════╗
+${roadmapBlock}
+╚════════════════════════════════════════════════════════════╝
+
+╔═══════════ OPEN ISSUE LEDGER (authoritative day-counts, computed from stored state — do NOT re-derive ages yourself) ═══════════╗
+${ledgerBlock}
 ╚════════════════════════════════════════════════════════════╝
 
 ╔═══════════ HOW CEM DECIDES (learned profile + recent verdicts) ═══════════╗
@@ -147,7 +178,7 @@ ${decisionsStr}
 ╚════════════════════════════════════════════════════════════╝
 When an inbox email or task closely matches how Cem has decided before, pre-classify it: in Inbox Triage note "(likely <verdict> — matches past)". Cem now curates his own inbox — do NOT propose archiving anything; just triage what he chose to keep in the inbox.
 
-═══════════ 🎯 CEM'S RECENT MESSAGES TO YOU (DM — his latest stated daily focus / priorities live here) ═══════════
+═══════════ 🎯 CEM'S RECENT MESSAGES TO YOU (DM + briefing-thread replies, last 3 days — his stated focus/priorities OVERRIDE your ranking) ═══════════
 ${cemChatBlock}
 
 ═══════════ INBOX — FreshSens (ca@freshsens.ai) — Cem's curated focus ═══════════
@@ -191,10 +222,10 @@ ${fmtTrack(space('diefi', 'Development'), 'DIEFI / Development')}
 ${fmtEsc()}
 
 ${isFriday ? `═══════════ 📊 WEEKLY REVIEW (Friday) ═══════════\n${fmtWeekly()}\n` : ''}
-═══════════ PERSONAL — Home / Smart-Home (open) ═══════════
+═══════════ PERSONAL — Home / Smart-Home (all open) ═══════════
 ${fmtPersonal}
 
-═══════════ OVERDUE — assigned to Cem ═══════════
+═══════════ ⏳ OVERDUE — assigned to Cem (${overdueTotal} total) ═══════════
 FreshSens [${oFs.count}]:
 ${fmtOverdue(oFs.tasks)}
 GOHM [${oGohm.count}]:
@@ -202,16 +233,19 @@ ${fmtOverdue(oGohm.tasks)}
 DIEFI [${oDiefi.count}]:
 ${fmtOverdue(oDiefi.tasks)}
 
-${d.errors && d.errors.length ? '⚠️ Collection issues: ' + d.errors.join('; ') + '\n' : ''}
+${d.errors && d.errors.length ? '⚠️ Collection issues (mention in the briefing if they hide data Cem relies on): ' + d.errors.join('; ') + '\n' : ''}
 ═══════════════════ PRODUCE THE BRIEFING ═══════════════════
-Write in Slack markdown (*bold*, not **). Start DIRECTLY with the cockpit (no title/date line — one is prepended). STRUCTURE: a short cross-org COCKPIT, then ONE self-contained block per company. Use a divider line "───────────" between the cockpit and each company block. Keep each company's content fully inside its block — do NOT mix orgs.
+Write in Slack markdown (*bold*, not **). Start DIRECTLY with the cockpit (no title/date line — one is prepended). STRUCTURE: a short cross-org COCKPIT, then ONE self-contained block per company. Use a divider line "───────────" between the cockpit and each company block. The cockpit is delivered as the main Slack message and the company blocks go to a thread — so the cockpit must stand alone. Keep each company's content fully inside its block — do NOT mix orgs.
 
-══════ COCKPIT (cross-org — keep tight) ══════
-*🎯 Today's Focus* — if Cem named a focus in HIS RECENT MESSAGES (e.g. "focus today: …", or a priority he stated in a briefing reply), LEAD with it: "You said you'd focus on X — here's where X stands" + the 1-2 concrete next steps. If he named none, omit this line entirely.
-*🔁 Since Yesterday* — vs yesterday: STILL OPEN (now older/riskier), RESOLVED, NEW. 3–5 lines. If no prior briefing, "First run — baseline established."
+══════ COCKPIT (cross-org — HARD LIMIT 400 words; this is the only part Cem is guaranteed to read) ══════
+*🎯 YOUR DAY* — THE deliverable: the 3–5 things CEM PERSONALLY should do today, ranked by this rubric (highest first):
+   (1) production/customer impact happening now → (2) external deadline today/tomorrow → (3) unblocks another person → (4) advances a 2026 goal → (5) everything else.
+   Each line: "N. <link|action verb + object> — why now · ⏱ estimate". Sum of estimates ≤ 60 min. If Cem stated a focus in HIS RECENT MESSAGES, item 1 MUST serve it and say "(your stated focus)". Actions you'd otherwise scatter through the briefing ("ping X", "confirm Y") belong ONLY here or in the ledger — do not sprinkle asks elsewhere.
+*🔁 Since Yesterday* — derive STRICTLY from the OPEN ISSUE LEDGER + today's data: STILL OPEN (use the ledger's day counts verbatim), RESOLVED (say what closed it), NEW. 3–5 lines. If the ledger is empty: "First structured run — ledger seeded."
 *📌 Today's Schedule* — all orgs on ONE timeline; each meeting tagged 🔴 must-attend / 🟡 optional / ⚪ routine AND [FS]/[GOHM]/[DIEFI]; note prep; resolve conflicts.
-*🔥 Top Priorities* (max 6) — ranked ACROSS all orgs (this is the one cross-org ranking), each tagged [FS]/[GOHM]/[DIEFI]. CONNECT signals; PULL IN any ⚡ escalations. Reference email tags like [FS3]. ALWAYS pull in any payment / fee / invoice / deadline / suspension / account-closure notice from the inboxes WITH its date and amount (e.g. "⏰ PTT KEP 215 TL — pay by ~10 Jul or account closes — open an issue?") — never bury a "pay-or-it-gets-cancelled" item.
-*🗣️ From Yesterday's Meetings* — all orgs; decisions/action items landing on Cem. 1 line/meeting; skip routine standups unless notable.
+*🔥 Top Priorities* (max 6) — ranked ACROSS all orgs with the SAME rubric as YOUR DAY, each tagged [FS]/[GOHM]/[DIEFI] AND with the 2026 goal it advances as [G: <3-4 word goal shorthand>] or [off-roadmap]. CONNECT signals; PULL IN any ⚡ escalations. Reference email tags like [FS3]. ALWAYS pull in any payment / fee / invoice / deadline / suspension / account-closure notice from the inboxes WITH its date and amount — never bury a "pay-or-it-gets-cancelled" item.
+*⏳ Overdue (yours: ${overdueTotal})* — pick the 3 most consequential of Cem's overdue tasks: each with its link + one verdict: DO today / RESCHEDULE to <date> / DELEGATE to <person>. ${isFriday ? 'Friday sweep: after the top 3, group the REST into "reschedule / delegate / drop candidates" buckets (counts + a few named examples) so the debt actually shrinks.' : 'One closing line: what the remaining count is and the single oldest item.'}
+*🗣️ From Yesterday's Meetings* — all orgs; decisions/action items landing on Cem. 1 line/meeting; skip routine standups unless notable. If notes are missing for meetings that happened, say so explicitly (never guess what happened).
 
 ───────────
 ══════ 🏭 FRESHSENS ══════
@@ -223,7 +257,7 @@ ${isFriday ? '*📊 Weekly Review* — completed issues + story points PER PERSO
 
 ───────────
 ══════ 🛰️ GOHM ══════
-*Projects* — Management hub (Robust6G coordination), Robust6G deadlines (D1.4 etc.), Q-TRUST6G (incoming): status, what moved, what needs Cem.
+*Projects* — Management hub (Robust6G coordination), Robust6G deadlines (D1.4 etc.), Q-TRUST6G (incoming): status, what moved, what needs Cem. Keep GM altitude: projects, deadlines, people — not code detail.
 *🚨 Incidents* — correlate GOHM alarms (#gohm-alerts, e.g. Meysu flapping) into incidents. If quiet, say so.
 *📨 Inbox — GOHM* (cem.ayyildiz@gohm.tech) — Cem curates this inbox; triage the GO-tagged emails: reply / delegate (do NOT suggest archiving). Flag any GOHM ⚠️ SAFETY NET item the same way. NOTE: DIEFI-related mail also arrives here — route DIEFI items to the DIEFI block below.
 
@@ -236,13 +270,14 @@ ${isFriday ? '*📊 Weekly Review* — completed issues + story points PER PERSO
 2–4 lines on open Home items; flag anything time-sensitive.
 
 ══════ ✅ Quick Wins ══════
-(1–3) closable in <15 min, any org.
+(1–3) closable in <15 min, any org, each with its link.
 
-Rules: direct, no filler, no restating raw data. Tight lines (1–2 each). NEVER mix orgs across blocks. Slack mrkdwn STRICT: *single asterisks* for bold (never **), no markdown tables, no "|" pipes — use "• Label — value" bullets. Hard cap 1200 words.
+Rules: direct, no filler, no restating raw data. Tight lines (1–2 each). NEVER mix orgs across blocks. Slack mrkdwn STRICT: *single asterisks* for bold (never **), links as <url|text>, no markdown tables, no "|" pipes outside links — use "• Label — value" bullets. Cockpit ≤ 400 words; whole briefing hard cap 1100 words.
 
-After the prose, on a new line, output EXACTLY one fenced JSON block:
+After the prose, on a new line, output EXACTLY one fenced JSON block — this is tomorrow's OPEN ISSUE LEDGER, so treat it as a database update, not a summary:
 \`\`\`json
-{"open_issues": ["one-line each: items that must carry to tomorrow"]}
-\`\`\``;
+{"open_issues": [{"title": "short stable name", "org": "fs|gohm|diefi|personal", "severity": "high|med|low", "owner": "person or ?", "next_action": "one line", "first_seen": "YYYY-MM-DD"}]}
+\`\`\`
+Ledger rules: (a) CARRY every still-open ledger item, KEEPING its original first_seen date EXACTLY; (b) NEW issues get first_seen=${d.todayDate}; (c) RESOLVED items are dropped from the JSON (mention them in Since Yesterday instead); (d) max 15 items — merge duplicates, drop stale trivia; (e) titles must stay stable day-to-day so items are trackable.`;
 
 return [{ json: { prompt, todayDate: d.todayDate, emailIndex } }];
