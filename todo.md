@@ -123,6 +123,9 @@ IDs/gotchas in `SENTINEL_STATUS.md` (registry/cadence work is §9).
 ## ❓ Open questions / waiting on Cem
 - [ ] **Daily/weekly report format** — review the SAMPLE briefings posted to the DM; tell me edits
 - [ ] **6G-QTrust & ZedCadit** — no ClickUp spaces yet; create + add to the registry when they exist
+- [ ] **New GOHM-team spaces** (added 2026-07-02, both still empty): `gohm-diefi` registered
+      daily/track, `Villa Kurt Development` daily/summary (Personal) — confirm cadence/depth once
+      work lands, and clarify how gohm-diefi splits from the DIEFI team's Development board
 - [ ] **Robust6G/WP6** — dropped from the registry (closing soon); re-add if they stay
 - [ ] **Slack coverage** — invite `@sentinel` to any other channels to include
 
