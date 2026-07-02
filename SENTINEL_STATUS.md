@@ -138,7 +138,7 @@ Plus a **Chat** assistant (DM it questions / commands).
 |---|---|---|---|
 | **Ingest** | `k3rAxpxlhVFrD8fp` | webhook `sentinel-ingest` | Front door: normalize+dedup any signal into Postgres `signals` (content_hash, djb2). |
 | **Daily Briefing** | `UR3IjaOiHX0guopW` | cron `0 4 * * *` (07:00 IST) + webhook `sentinel-test-trigger-001` | Reads mail/calendar/notes/ClickUp → stores signals → posts morning briefing to Slack; routes triage queue. |
-| **Post Queue** | `zV37n3aaFQxMD0sd` | webhook `sentinel-postqueue` | Learning-gated triage: AI classifies vs profile, auto-skips clear noise, surfaces ≤5 needing a call. Auto-refills as the board clears. |
+| **Post Queue** | `zV37n3aaFQxMD0sd` | webhook `sentinel-postqueue` | Learning-gated triage: AI classifies vs profile, auto-skips clear noise, surfaces ≤5 needing a call. Auto-refills as the board clears. **Emails-only since 2026-07-02** — overdue ClickUp tasks excluded from candidates (Cem tracks ClickUp himself; they surface only in the briefing's ⏳ Overdue section). |
 | **Decision Capture** | `tTq2dXFA8xc1C5uZ` | webhook `sentinel-slack-events` | Slack reactions/replies → decisions (verdict+reason) → cleans board, triggers mail-clean, handles issue approvals. Routes chat questions. **Cem-only.** |
 | **Profile** | `tvUyWOphKOHpR6Wi` | cron `0 17 * * 0` + webhook `sentinel-profile-test` | Weekly: rewrites the learned "how Cem decides" profile from decisions. |
 | **Mail Cleaner** | `scMAvwvO967CgDSh` | webhook `sentinel-clean-mail` | Archives `skip`-verdict emails (remove INBOX, add `Sentinel/FYI-Archived`). **Never deletes.** |

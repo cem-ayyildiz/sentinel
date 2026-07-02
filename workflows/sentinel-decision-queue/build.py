@@ -3,11 +3,14 @@ K="__N8N_API_KEY__"
 B="https://flow.gohm.tech"; H={"X-N8N-API-KEY":K,"Content-Type":"application/json"}; PG="1TBwe9uebXBQKUhV"
 S="/tmp/sentinel/"; js=lambda f: open(S+f).read()
 LOAD_PROFILE="SELECT profile FROM decision_profile ORDER BY updated_at DESC LIMIT 1;"
+# type='task' (overdue ClickUp tasks) deliberately EXCLUDED from queue candidates — Cem tracks
+# ClickUp himself (feedback 2026-07-02: no DM triage pings for overdue tasks; the briefing's
+# ⏳ Overdue section is the only place they surface). Task signals still land in `signals`.
 LOAD_CAND=("SELECT id, type, org, title, body, actor, url, metadata FROM signals "
  "WHERE ingested_at >= date_trunc('day', now()) AND slack_ts IS NULL "
- "AND id NOT IN (SELECT signal_id FROM decisions WHERE signal_id IS NOT NULL) AND ("
- "(type='email' AND COALESCE((metadata->>'automated')::boolean,false)=false AND COALESCE((metadata->>'bulk')::boolean,false)=false) OR type='task') "
- "ORDER BY CASE WHEN type='email' AND COALESCE((metadata->>'unread')::boolean,false) THEN 0 WHEN type='task' THEN 1 ELSE 2 END, ingested_at DESC LIMIT 15;")
+ "AND id NOT IN (SELECT signal_id FROM decisions WHERE signal_id IS NOT NULL) "
+ "AND type='email' AND COALESCE((metadata->>'automated')::boolean,false)=false AND COALESCE((metadata->>'bulk')::boolean,false)=false "
+ "ORDER BY CASE WHEN COALESCE((metadata->>'unread')::boolean,false) THEN 0 ELSE 1 END, ingested_at DESC LIMIT 15;")
 AUTO_SKIP="INSERT INTO decisions (signal_id, verdict, reason, decided_via) VALUES ($1,'skip',$2,'auto_rule') ON CONFLICT (signal_id) DO NOTHING;"
 AUTO_SKIP_P="={{ [$json.id, 'auto-skipped (learned rule)' + ($json.hint ? (' — '+$json.hint) : '')] }}"
 UPTS="UPDATE signals SET slack_ts=$1 WHERE id=$2;"
