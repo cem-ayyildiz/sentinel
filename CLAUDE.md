@@ -70,4 +70,9 @@ Session memory index: `~/.claude/projects/-home-cem-temp-sentinel/memory/MEMORY.
 
 ## Habits
 - Always update `todo.md` + `SENTINEL_STATUS.md` when shipping; commit and push after each work unit.
+- **After each completed change round to the briefing: fire a real run**
+  (`GET …/webhook/sentinel-test-trigger-001`) so Cem sees the fresh report in his DM and can give
+  feedback. Use the safe-test pattern (nodes disabled) only for intermediate verification.
 - Never let Sentinel act destructively: propose, label, ask — Cem approves via Slack.
+- Mail contract: inbox = needs something; archived = read AND handled — never resurface archived
+  mail anywhere (briefing, signals, queue).
