@@ -359,3 +359,29 @@ Fix = partition by ACTOR, not two rankings of the same list:
 - Company blocks: may not restate cockpit items at all; each email appears exactly once
   (DIEFI mail → DIEFI block only). Final self-check instruction: scan for repeated links, delete
   lower-precedence occurrence (YOUR DAY > RADAR > Overdue > Schedule > Since Yesterday > blocks).
+
+### §10.3 — v3.3 provenance + debuggability (2026-07-02, Cem's fourth feedback round)
+Cem asked "where does this item come from?" (TEYDEB IBAN — completed in reality, still carried).
+Trace showed: ledger item first_seen 2026-06-26, origin = GOHM inbox email "Fwd: 9220038 No'lu
+Proje 2025/2 Dönemi Ödeme Bilgisi" (TEYDEB PRODIS, Jun 23); resolution happened outside Sentinel's
+view so the ledger carried it forever. Fixes:
+- **Ledger `source` field** — every open_issues item carries its origin
+  (`clickup:<task_id> | email:<subject> | slack:#chan | meeting:<title> | cem`); carried verbatim
+  like first_seen; RADAR lines end with "(src: …)" so every briefing line is traceable.
+- **Resolution channels** — (f) email-sourced items auto-resolve when the email leaves the inbox;
+  (g) Cem can reply "done: X" / "drop: X" in the DM/thread → dropped next morning "(per Cem)".
+- **`focus:` command** — a DM/thread message starting "focus:"/"/focus" sets a STANDING FOCUS
+  (14-day window, collector `out.cemFocus`); YOUR DAY item 1 must serve it.
+- **Deterministic 📌 Schedule** — parse-output renders it in code from the calendars (today's
+  non-routine events; /daily|stand-up/i skipped; 🔴 = external attendee present; cross-account
+  dedup); the model no longer writes Schedule (venue mentions live inline in YOUR DAY/RADAR).
+- **Friday ledger health** — aging (>7d) computed in code, surfaced in the ledger block
+  ("AGING >7 DAYS: N — titles"); Friday briefing adds "⚠️ Ledger health" line.
+- emit-signals Gmail links now account-aware (`?authuser=<email>`, was u/0).
+- **Meeting-notes root cause (investigated with live Drive tokens):** the pipeline WORKS — Gemini
+  note-taking is simply not enabled on most recurring meetings (no Gemini docs exist for Jul 1 at
+  all; notes exist only for board/Team-Leads/WP6/DIEFI + today's Software Daily which Gabrial
+  enabled manually). ACTION (Cem/team, not code): enable "Take notes with Gemini" on the recurring
+  meeting series in Calendar.
+- Deferred (next round): two-stage analyst split (per-company extraction + cockpit synthesizer) —
+  workflow-graph change, do it as its own tested refactor.

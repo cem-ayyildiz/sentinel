@@ -46,13 +46,15 @@ const cemChatBlock = cemChat.length
 // ---- OPEN ISSUE LEDGER — yesterday's structured open_issues, ages computed HERE (authoritative) ----
 const ledgerArr = (ctx.last_briefing && Array.isArray(ctx.last_briefing.open_issues)) ? ctx.last_briefing.open_issues : [];
 const ageOf = (fs) => { const t = Date.parse(fs); return isNaN(t) ? null : Math.max(0, Math.round((Date.parse(d.todayDate) - t) / 86400000)); };
-const ledgerBlock = ledgerArr.length ? ledgerArr.map(it => {
+const aging = ledgerArr.filter(o => o && typeof o === 'object' && (ageOf(o.first_seen) || 0) > 7);
+const ledgerBlock = (ledgerArr.length ? ledgerArr.map(it => {
   if (typeof it === 'string') return `- ${it} (age unknown — legacy entry; assign first_seen when you carry it)`;
   const a = ageOf(it.first_seen);
   return `- [${(it.org || '?').toUpperCase()}]${a != null ? ` *day ${a + 1}*` : ''}${it.severity ? ` (${it.severity})` : ''} ${it.title}`
     + `${it.owner ? ` — owner: ${it.owner}` : ''}${it.next_action ? ` — next: ${it.next_action}` : ''}`
-    + ` (first_seen ${it.first_seen || '?'})`;
-}).join('\n') : '_(ledger empty — first structured run; seed it from today\'s data)_';
+    + ` (first_seen ${it.first_seen || '?'}${it.source ? ` · src: ${it.source}` : ''})`;
+}).join('\n') : '_(ledger empty — first structured run; seed it from today\'s data)_')
+  + (aging.length ? `\nAGING >7 DAYS (computed): ${aging.length} — ${aging.slice(0, 3).map(o => o.title).join('; ')}` : '');
 
 // ---- 2026 strategic goals (Miro roadmap, loaded by Load Context) ----
 const roadmapBlock = (ctx.roadmap && String(ctx.roadmap).trim())
@@ -172,7 +174,7 @@ ${decisionsStr}
 ╚════════════════════════════════════════════════════════════╝
 When an inbox email or task closely matches how Cem has decided before, pre-classify it: in Inbox Triage note "(likely <verdict> — matches past)". Cem curates his own inboxes: what is IN the inbox still needs something; what he archived is READ AND HANDLED. Do NOT propose archiving, and NEVER reference mail that is not in the inbox data above.
 
-═══════════ 🎯 CEM'S RECENT MESSAGES TO YOU (DM + briefing-thread replies, last 3 days — his stated focus/priorities OVERRIDE your ranking) ═══════════
+${d.cemFocus ? `═══════════ 🎯 CEM'S STANDING FOCUS (set ${d.cemFocus.when} via "focus:" — YOUR DAY item 1 MUST serve this until he changes it) ═══════════\n${d.cemFocus.text}\n\n` : ''}═══════════ 🎯 CEM'S RECENT MESSAGES TO YOU (DM + briefing-thread replies, last 3 days — his stated focus/priorities OVERRIDE your ranking; "done: X" / "drop: X" resolves ledger items) ═══════════
 ${cemChatBlock}
 
 ═══════════ INBOX — FreshSens (ca@freshsens.ai) — Cem's curated focus ═══════════
@@ -229,9 +231,9 @@ Write in Slack markdown (*bold*, not **). Start DIRECTLY with the cockpit (no ti
 THE PARTITION RULE (this is the core design — obey it mechanically):
 • *YOUR DAY* = actions where CEM is the actor today. • *RADAR* = items where SOMEONE ELSE is the actor and Cem only watches. An item is EXACTLY ONE of the two — never both. A link/task/email may appear ONCE in the entire cockpit; company blocks may not restate cockpit items AT ALL.
 *🎯 YOUR DAY* — THE deliverable: EVERY action Cem personally takes today (3–7 items, this is the ONLY list of Cem-actions in the whole briefing), ranked by: (1) production/customer impact now → (2) external deadline today/tomorrow → (3) unblocks another person → (4) advances a 2026 goal → (5) rest. Each line: "N. <link|action verb + object> — why now · ⏱ estimate". Put <5-min items at the bottom marked ⚡ (these replace the old Quick Wins section). Sum ≤ 60 min. If Cem stated a focus in HIS RECENT MESSAGES, item 1 MUST serve it and say "(your stated focus)". Include reply-needed emails ONLY if truly urgent today (otherwise they stay in the company inbox blocks). ALWAYS include any payment / fee / deadline / suspension notice from the inboxes WITH date and amount.
-*📡 RADAR — not yours today, watch it* (max 5) — the top cross-org risks/opportunities where someone ELSE must act. Each line: "[ORG] item (day N) — owner → expected next step; intervene if <condition>". Tag [G: <3-4 word goal>] or [off-roadmap]. PULL IN ⚡ escalations and incident threads. NEVER list anything that is in YOUR DAY.
-*🔁 Since Yesterday* — derive STRICTLY from the OPEN ISSUE LEDGER + today's data. Max 3 lines: STILL OPEN (ledger day counts verbatim — only items NOT already shown above), RESOLVED (say what closed it), NEW. If the ledger is empty: "First structured run — ledger seeded."
-*📌 Today's Schedule* — ONLY meetings Cem actually needs to think about: weekly/one-off/external/decision meetings, tagged 🔴 must-attend / 🟡 optional + [FS]/[GOHM]/[DIEFI], one line each. SKIP recurring routine dailies/standups entirely (e.g. "Firmware Daily", "Software Daily" — Cem knows his standup rhythm). EXCEPTION: mention a routine daily ONLY as a venue when something specific must be raised there ("08:50 — raise X"), never as a bare entry. Resolve conflicts in one line.
+*📡 RADAR — not yours today, watch it* (max 5) — the top cross-org risks/opportunities where someone ELSE must act. Each line: "[ORG] item (day N) — owner → expected next step; intervene if <condition> · (src: <source>)". The src comes from the ledger's src field (or the new item's origin: clickup task / email subject / slack channel / meeting) — it lets Cem trace where the information came from. Tag [G: <3-4 word goal>] or [off-roadmap]. PULL IN ⚡ escalations and incident threads. NEVER list anything that is in YOUR DAY.
+*🔁 Since Yesterday* — derive STRICTLY from the OPEN ISSUE LEDGER + today's data. Max 3 lines: STILL OPEN (ledger day counts verbatim — only items NOT already shown above), RESOLVED (say what closed it), NEW.${isFriday ? ' Friday extra line: "⚠️ Ledger health: <N> items >7d" using the computed AGING line from the ledger block, naming the two oldest.' : ''} If the ledger is empty: "First structured run — ledger seeded."
+(Do NOT write a Schedule section — today's non-routine meetings are inserted automatically from the calendar. Mention a meeting inline in YOUR DAY/RADAR only as a venue: "raise X at the 08:50 standup".)
 *⏳ Overdue (yours: ${overdueTotal})* — the 3 most consequential of Cem's overdue tasks NOT already linked above: each with its link + one verdict: DO today / RESCHEDULE to <date> / DELEGATE to <person>. ${isFriday ? 'Friday sweep: after the top 3, group the REST into "reschedule / delegate / drop candidates" buckets (counts + a few named examples) so the debt actually shrinks.' : 'One closing line: remaining count + the single oldest item.'}
 
 ───────────
@@ -263,8 +265,8 @@ Rules: direct, no filler, no restating raw data. Tight lines (1–2 each). NEVER
 
 After the prose, on a new line, output EXACTLY one fenced JSON block — this is tomorrow's OPEN ISSUE LEDGER, so treat it as a database update, not a summary:
 \`\`\`json
-{"open_issues": [{"title": "short stable name", "org": "fs|gohm|diefi|personal", "severity": "high|med|low", "owner": "person or ?", "next_action": "one line", "first_seen": "YYYY-MM-DD"}]}
+{"open_issues": [{"title": "short stable name", "org": "fs|gohm|diefi|personal", "severity": "high|med|low", "owner": "person or ?", "next_action": "one line", "first_seen": "YYYY-MM-DD", "source": "clickup:<task_id> | email:<subject, ≤50 chars> | slack:#<channel> | meeting:<title> | cem"}]}
 \`\`\`
-Ledger rules: (a) CARRY every still-open ledger item, KEEPING its original first_seen date EXACTLY; (b) NEW issues get first_seen=${d.todayDate}; (c) RESOLVED items are dropped from the JSON (mention them in Since Yesterday instead); (d) max 15 items — merge duplicates, drop stale trivia; (e) titles must stay stable day-to-day so items are trackable; (f) an item whose ONLY evidence was an email counts as RESOLVED once that email is no longer in today's inbox — Cem archives mail only after handling it, so drop the item silently.`;
+Ledger rules: (a) CARRY every still-open ledger item, KEEPING its original first_seen AND source EXACTLY; (b) NEW issues get first_seen=${d.todayDate} and a source describing where you saw the evidence; (c) RESOLVED items are dropped from the JSON (mention them in Since Yesterday instead); (d) max 15 items — merge duplicates, drop stale trivia; (e) titles must stay stable day-to-day so items are trackable; (f) an item whose source is an email counts as RESOLVED once that email is no longer in today's inbox — Cem archives mail only after handling it, so drop the item silently; (g) if Cem's RECENT MESSAGES say an item is done/handled/drop it (e.g. "done: TEYDEB"), drop it and list it under RESOLVED as "(per Cem)".`;
 
 return [{ json: { prompt, todayDate: d.todayDate, emailIndex } }];

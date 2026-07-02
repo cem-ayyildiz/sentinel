@@ -3,7 +3,8 @@
 // (emails, overdue tasks, meeting notes) — the substrate the decision loop learns from.
 const d = $input.first().json;
 const sigs = [];
-const gmailUrl = (id) => `https://mail.google.com/mail/u/0/#all/${id}`;
+const gmailUrl = (org, id) =>
+  `https://mail.google.com/mail/?authuser=${org === 'freshsens' ? 'ca@freshsens.ai' : 'cem.ayyildiz@gohm.tech'}#all/${id}`;
 
 for (const [arr, org] of [[d.emailsFs, 'freshsens'], [d.emailsGohm, 'gohm']]) {
   for (const e of (arr || [])) {
@@ -11,7 +12,7 @@ for (const [arr, org] of [[d.emailsFs, 'freshsens'], [d.emailsGohm, 'gohm']]) {
     sigs.push({
       source: 'gmail', source_ref: e.id, org, type: 'email',
       title: e.subject || '(no subject)', body: e.snippet || '', actor: e.from || null,
-      url: gmailUrl(e.id),
+      url: gmailUrl(org, e.id),
       metadata: { unread: !!e.unread, important: !!e.important, starred: !!e.starred,
                   category: e.category, bulk: !!e.bulk, automated: !!e.automated },
     });

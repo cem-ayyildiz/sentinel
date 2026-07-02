@@ -71,6 +71,11 @@ IDs/gotchas in `SENTINEL_STATUS.md` (registry/cadence work is §9).
       only (absorbs Quick Wins as ⚡ items) · 📡 RADAR = others' actions with owner + intervene-if
       (replaces Top Priorities — same-rubric twin sections were the structural cause of duplicates);
       Schedule skips routine dailies/standups (dailies appear only as "raise X" venues)
+- [x] **v3.3 (provenance round)** — ledger `source` field + "(src: …)" on RADAR lines (every item
+      traceable to its origin); "done: X"/"drop: X" replies resolve ledger items; `focus:` command
+      (14-day standing focus); 📌 Schedule now rendered deterministically in code from the
+      calendars; Friday ledger-health (aging >7d computed in code); account-aware Gmail links in
+      signals; notes "pipeline bug" root-caused to Gemini not enabled on recurring meetings
 
 ---
 
@@ -82,16 +87,16 @@ IDs/gotchas in `SENTINEL_STATUS.md` (registry/cadence work is §9).
 ---
 
 ## 🚀 Next capabilities (in value order)
-- [ ] **Investigate the meeting-notes pipeline** — Jul 1 had 13 meetings and 0 Gemini notes; check
-      Gemini note-taking is enabled on the recurring dailies + whether notes land in the organizer's
-      Drive instead of Cem's (the new gap-alarm will now show how often this bites)
+- [ ] **⚠️ ON CEM: enable "Take notes with Gemini" on the recurring meeting series** — investigation
+      (2026-07-02, STATUS §10.3) proved the pipeline works; notes simply don't exist for most
+      recurring meetings (Jul 1: 8 meetings, zero Gemini docs in either account). One-time Calendar
+      setting per series; the gap-alarm shows the miss rate daily.
 - [ ] **Decision log from transcripts** (design principle #4) — extract technical decisions +
       rationale from meeting notes into a durable, queryable log (the `decisions` table currently
-      holds triage verdicts, which is a different thing)
-- [ ] **`/focus` chat command** — explicit way to set today's focus from the DM (stored in PG,
-      read by Load Context) as a stronger channel than free-text thread replies
+      holds triage verdicts, which is a different thing). Unblocked once Gemini notes flow.
 - [ ] **Split the analyst** — per-company extraction (structured JSON) + small synthesis call for
-      cockpit/YOUR DAY; the single 65k-char mega-prompt dilutes attention
+      cockpit/YOUR DAY; the single ~65k-char mega-prompt dilutes attention (word-cap overshoot is
+      the visible symptom). Workflow-graph change — do as its own tested refactor.
 - [ ] **Fallback LLM credential** — everything rides on one Claude CLI credential today
 - [ ] **Map remaining Slack channels** in the registry (~12 unmapped default to daily) — mark weekly/muted
 - [ ] **Explicit Gmail weekly-sender folding** (optional; daily bulk/newsletter triage already covers most)

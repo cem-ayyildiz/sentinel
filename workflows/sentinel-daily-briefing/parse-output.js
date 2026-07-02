@@ -40,6 +40,40 @@ prose = prose.replace(/\*\*(.+?)\*\*/g, '*$1*');
   }).join('\n');
 }
 
+// ---- Deterministic 📌 Schedule (code-rendered from the calendars; the model no longer writes it).
+// Routine dailies/standups are skipped per Cem; 🔴 = external attendees present, 🟡 = internal.
+try {
+  const col = $('Collect All Sources').first().json;
+  const today = $('Build Analyst Prompt').first().json.todayDate;
+  const ROUTINE_RE = /daily|stand-?up/i;
+  const INTERNAL_RE = /@(freshsens\.ai|gohm\.tech|gohm\.com\.tr)$/i;
+  const seenEv = new Set();
+  const evs = [];
+  for (const [arr, org] of [[col.calFs, 'FS'], [col.calGohm, 'GOHM']]) {
+    for (const e of (arr || [])) {
+      const start = e.start || '';
+      if (start.substring(0, 10) !== today) continue;
+      if (ROUTINE_RE.test(e.summary || '')) continue;
+      const key = start.substring(0, 16) + '|' + (e.summary || '').toLowerCase().trim();
+      if (seenEv.has(key)) continue;
+      seenEv.add(key);
+      const attendees = (e.attendees || '').split(',').map(x => x.trim()).filter(Boolean);
+      evs.push({
+        time: start.length > 10 ? start.substring(11, 16) : 'all-day',
+        org, name: e.summary,
+        external: attendees.some(a => !INTERNAL_RE.test(a)),
+      });
+    }
+  }
+  evs.sort((a, b) => a.time.localeCompare(b.time));
+  const sched = "*📌 Today's Schedule*\n" + (evs.length
+    ? evs.map(e => `• ${e.time} ${e.external ? '🔴' : '🟡'} [${e.org}] ${e.name}`).join('\n')
+    : '_no non-routine meetings today_');
+  let at = prose.indexOf('\n*⏳');
+  if (at < 0) { const m = prose.match(/\n─{4,}/); at = m ? m.index : prose.length; }
+  prose = prose.slice(0, at) + '\n\n' + sched + prose.slice(at);
+} catch (e) { /* schedule is additive — never break the briefing */ }
+
 // Auto-archiving retired — Cem curates his own inbox now, so Sentinel never archives mail.
 const archive = [];
 
@@ -57,6 +91,7 @@ const openIssues = (Array.isArray(actions.open_issues) ? actions.open_issues : [
     owner: it.owner ? String(it.owner).substring(0, 60) : null,
     next_action: it.next_action ? String(it.next_action).substring(0, 200) : null,
     first_seen: /^\d{4}-\d{2}-\d{2}$/.test(String(it.first_seen || '')) ? it.first_seen : todayDate,
+    source: it.source ? String(it.source).substring(0, 90) : null,
   };
 }).filter(Boolean).slice(0, 20);
 

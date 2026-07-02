@@ -98,7 +98,7 @@ out.cemChat = [];
 try {
   const dmGet = (url) => this.helpers.httpRequest({ method: 'GET', url,
     headers: { Authorization: `Bearer ${SLACK_TOKEN}` }, json: true });
-  const hist = await dmGet('https://slack.com/api/conversations.history?channel=D0BBRKKPGUE&limit=15');
+  const hist = await dmGet('https://slack.com/api/conversations.history?channel=D0BBRKKPGUE&limit=30');
   const top = hist.messages || [];
   let mine = top.filter(m => !(m.bot_id || m.app_id) && m.text);
   // Cem replies to briefings IN THREADS — conversations.history never returns thread
@@ -109,12 +109,18 @@ try {
       mine = mine.concat((rr.messages || []).filter(m => m.ts !== t.ts && !(m.bot_id || m.app_id) && m.text));
     } catch (e) { /* best-effort per thread */ }
   }
+  const whenOf = (ts) => new Date(parseFloat(ts) * 1000).toISOString().substring(0, 16).replace('T', ' ');
   const dmCutoff = (Date.now() - 72 * 3600 * 1000) / 1000; // only the last 3 days matter as "focus"
   out.cemChat = mine.filter(m => parseFloat(m.ts) >= dmCutoff)
     .sort((a, b) => parseFloat(a.ts) - parseFloat(b.ts)).slice(-15)
-    .map(m => ({ ts: m.ts,
-      when: new Date(parseFloat(m.ts) * 1000).toISOString().substring(0, 16).replace('T', ' '),
-      text: String(m.text).substring(0, 300) }));
+    .map(m => ({ ts: m.ts, when: whenOf(m.ts), text: String(m.text).substring(0, 300) }));
+  // Standing focus: a message starting "focus:" (or "/focus") sets Cem's focus for up to 14 days.
+  const focusCutoff = (Date.now() - 14 * 24 * 3600 * 1000) / 1000;
+  const focusMsg = mine.filter(m => parseFloat(m.ts) >= focusCutoff && /^\/?focus\b[:\s]/i.test(String(m.text || '').trim()))
+    .sort((a, b) => parseFloat(b.ts) - parseFloat(a.ts))[0];
+  out.cemFocus = focusMsg
+    ? { when: whenOf(focusMsg.ts), text: String(focusMsg.text).trim().replace(/^\/?focus\b[:\s]*/i, '').substring(0, 300) }
+    : null;
 } catch (e) { out.errors.push('Cem DM: ' + e.message); }
 
 // ===== CALENDAR (both accounts) =====
