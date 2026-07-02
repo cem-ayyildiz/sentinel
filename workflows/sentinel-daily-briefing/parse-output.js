@@ -24,6 +24,8 @@ if (matches.length) {
 
 // Slack mrkdwn uses *single* asterisks; the model occasionally slips into **markdown bold**.
 prose = prose.replace(/\*\*(.+?)\*\*/g, '*$1*');
+// Scrub markdown-table artifacts (| a | b | lines render as raw pipes in Slack).
+prose = prose.split('\n').filter(l => !/^\s*\|.*\|\s*$/.test(l)).join('\n');
 
 // Deterministic no-duplication guard: the model sometimes repeats a YOUR DAY task inside
 // ⏳ Overdue (occasionally with a contradictory verdict). Drop any Overdue bullet whose

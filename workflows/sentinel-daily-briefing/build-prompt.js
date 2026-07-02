@@ -120,12 +120,13 @@ const fmtEsc = () => {
   return e.map(x => `- [${x.why}] ${link(x.url, x.name)} (${x.org}/${x.space}) — ${x.status}${x.due ? `, due ${x.due}` : ''}, ${x.assignee}`).join('\n');
 };
 const fmtWeekly = () => {
-  const sp = (ctx.weekly_sp || []).filter(r => r.person);
+  // Noise guard: people with 0 SP and <3 completions are non-dev-board stragglers — skip them.
+  const sp = (ctx.weekly_sp || []).filter(r => r.person && (Number(r.sp) > 0 || Number(r.tasks_done) >= 3)).slice(0, 10);
   const agent = ctx.weekly_agent || {};
   const wk = cu.weekly || [];
   const out = [];
   out.push(sp.length
-    ? '*Completed this week (entered Review/Closed · SP):*\n' + sp.map(r => `   • ${r.person}: ${r.tasks_done} tasks · ${r.sp || 0} SP`).join('\n')
+    ? '*Completed this week (since Monday — entered Review/Closed · SP):*\n' + sp.map(r => `   • ${r.person}: ${r.tasks_done} tasks · ${r.sp || 0} SP`).join('\n')
     : '_no per-person weekly story points captured yet (ledger builds forward from 2026-06-26)_');
   if (agent.deliveries) out.push(`*Multica Agent:* ${agent.deliveries} MR deliveries · ${agent.sp || 0} SP`);
   if (wk.length) out.push('*Weekly-cadence spaces:*\n' + wk.map(s => `   ▸ ${s.org}/${s.name}: ${s.active} open / ${s.completed} done (7d)`).join('\n'));
@@ -248,7 +249,7 @@ THE PARTITION RULE (this is the core design — obey it mechanically):
 *Board hygiene* — surface the ⚠️ flags (stale in-progress, missing story points, nothing in review) as a gentle nudge — the team doesn't always keep the board honest.
 *Management* — one line: what Baran/Cem moved.
 *🚨 Incidents* — correlate FreshSens Slack alarms into incidents (severity, root-cause hypothesis, owner, next action): #fs-alerts, #thingsboard_alarms, #operation-alerts, #deployments, #produce_alarms, #support. If quiet, say so.
-${isFriday ? '*📊 Weekly Review* — completed issues + story points PER PERSON this week (from the weekly data above; actor-credited), the Multica Agent\'s deliveries (separate line, do not double-count), and a short Sales / Team Leads / Fundraising summary. Mirror Cem\'s sheet people: Gabby, Sevval, Sina Can, Sultan, Muhammad, Multica Agent.\n' : ''}*📨 Inbox — FreshSens* (ca@freshsens.ai) — Cem curates this inbox himself, so treat every FS email as kept-on-purpose: (a) *Reply needed* (max 5) — sender + ask + [tag]; (b) *Delegate* — who owns it. Do NOT suggest archiving; never mention mail that isn't in the inbox data.
+${isFriday ? '*📊 Weekly Review* — per-person completed issues + story points this week: use ONLY the numbers from the "Completed this week (since Monday)" list above — NEVER substitute sprint-board totals; if a sheet person is absent from that list, write "not captured this week". Then the Multica Agent\'s deliveries (separate line, do not add to human totals), and a short Sales / Team Leads / Fundraising summary. Sheet people: Gabby, Sevval, Sina Can, Sultan, Muhammad, Multica Agent.\n' : ''}*📨 Inbox — FreshSens* (ca@freshsens.ai) — Cem curates this inbox himself, so treat every FS email as kept-on-purpose: (a) *Reply needed* (max 5) — sender + ask + [tag]; (b) *Delegate* — who owns it. Do NOT suggest archiving; never mention mail that isn't in the inbox data.
 
 ───────────
 ══════ 🛰️ GOHM ══════

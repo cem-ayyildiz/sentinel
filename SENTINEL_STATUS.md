@@ -404,3 +404,27 @@ is double work. Replaced with **automatic verification against the source of tru
   EN/FR/DE/IT/JA/KO/PT/ES as of 2026 — **no Turkish**. Turkish meetings cannot produce Gemini
   notes at all. Enable Gemini notes on the ENGLISH recurring meetings (DIEFI, Robust6G, board);
   for Turkish meetings a third-party recorder or no notes — the daily gap-alarm stays informational.
+
+### §10.5 — weekly-reporting audit + fixes (2026-07-02)
+Audited ahead of the first post-v3 Friday (Jul 3). Ledger healthy (887 events, daily flow).
+**Bugs fixed in Load Context:**
+- `weekly_sp` and `weekly_agent` used a ROLLING 7-day window (`now()-interval '7 days'`) — on
+  Friday that leaks the previous Thu/Fri into "this week" (Sultan: 19 SP rolling vs 16 SP real
+  ISO week). Both now `event_time >= date_trunc('week', now())` — matches Cem's sheet columns.
+- fmtWeekly: noise guard (skip 0-SP people with <3 completions), "since Monday" label.
+- Friday Weekly Review instruction: use ONLY the ledger's weekly list, never sprint-board totals
+  (model had padded Gabby's row from board data); absent sheet person → "not captured this week".
+- parse-output scrubs markdown-table `| a | b |` artifact lines (Slack shows raw pipes).
+**Verified via forced-Friday safe run** (set-dates isFriday=true + sends disabled, then reverted):
+📊 Weekly Review renders per person + agent line (16 MR · 42 SP) + weekly-space summary; Friday
+overdue sweep buckets (reschedule/delegate/drop) render. GOTCHA: a webhook fired ~1s after PUT
+still ran the OLD workflow version — wait a few seconds after PUT before triggering.
+**Notes on data semantics:** SP is actor-credited (who moved the status), not assignee-credited —
+known todo. Missing story points on ~80% of active tasks silently undercount weekly SP (auto-
+estimate currently only fires for agent MRs — extending it to all dev tasks entering Review is a
+candidate). `clickup_events.org` is always 'freshsens' (webhook registered on FS team only) —
+GOHM/DIEFI transitions are NOT captured; register webhooks for those teams if their SP matters.
+**Roadmap Report (Mon) review:** content good (goal-by-goal vs live tasks, gaps/drift, Multica
+concentration risk). Improvement candidates: task links (gather nodes drop URLs), week-over-week
+continuity (stateless today — store reports like briefings and diff), fold ledger SP/velocity in,
+'Gather ClickUp' node source is live-only (not in repo — export it).
