@@ -54,7 +54,10 @@ const ledgerBlock = (ledgerArr.length ? ledgerArr.map(it => {
     + `${it.owner ? ` — owner: ${it.owner}` : ''}${it.next_action ? ` — next: ${it.next_action}` : ''}`
     + ` (first_seen ${it.first_seen || '?'}${it.source ? ` · src: ${it.source}` : ''})`;
 }).join('\n') : '_(ledger empty — first structured run; seed it from today\'s data)_')
-  + (aging.length ? `\nAGING >7 DAYS (computed): ${aging.length} — ${aging.slice(0, 3).map(o => o.title).join('; ')}` : '');
+  + (aging.length ? `\nAGING >7 DAYS (computed): ${aging.length} — ${aging.slice(0, 3).map(o => o.title).join('; ')}` : '')
+  + ((d.ledgerAutoResolved || []).length
+    ? `\n✅ AUTO-RESOLVED at the source (code-verified this morning — DROP these from the ledger; list under RESOLVED as "auto-verified"):\n${d.ledgerAutoResolved.map(r => `   - ${r.title} — ${r.why}`).join('\n')}`
+    : '');
 
 // ---- 2026 strategic goals (Miro roadmap, loaded by Load Context) ----
 const roadmapBlock = (ctx.roadmap && String(ctx.roadmap).trim())
@@ -174,7 +177,7 @@ ${decisionsStr}
 ╚════════════════════════════════════════════════════════════╝
 When an inbox email or task closely matches how Cem has decided before, pre-classify it: in Inbox Triage note "(likely <verdict> — matches past)". Cem curates his own inboxes: what is IN the inbox still needs something; what he archived is READ AND HANDLED. Do NOT propose archiving, and NEVER reference mail that is not in the inbox data above.
 
-${d.cemFocus ? `═══════════ 🎯 CEM'S STANDING FOCUS (set ${d.cemFocus.when} via "focus:" — YOUR DAY item 1 MUST serve this until he changes it) ═══════════\n${d.cemFocus.text}\n\n` : ''}═══════════ 🎯 CEM'S RECENT MESSAGES TO YOU (DM + briefing-thread replies, last 3 days — his stated focus/priorities OVERRIDE your ranking; "done: X" / "drop: X" resolves ledger items) ═══════════
+${d.cemFocus ? `═══════════ 🎯 CEM'S STANDING FOCUS (set ${d.cemFocus.when} via "focus:" — YOUR DAY item 1 MUST serve this until he changes it) ═══════════\n${d.cemFocus.text}\n\n` : ''}═══════════ 🎯 CEM'S RECENT MESSAGES TO YOU (DM + briefing-thread replies, last 3 days — his stated focus/priorities OVERRIDE your ranking) ═══════════
 ${cemChatBlock}
 
 ═══════════ INBOX — FreshSens (ca@freshsens.ai) — Cem's curated focus ═══════════
@@ -265,8 +268,8 @@ Rules: direct, no filler, no restating raw data. Tight lines (1–2 each). NEVER
 
 After the prose, on a new line, output EXACTLY one fenced JSON block — this is tomorrow's OPEN ISSUE LEDGER, so treat it as a database update, not a summary:
 \`\`\`json
-{"open_issues": [{"title": "short stable name", "org": "fs|gohm|diefi|personal", "severity": "high|med|low", "owner": "person or ?", "next_action": "one line", "first_seen": "YYYY-MM-DD", "source": "clickup:<task_id> | email:<subject, ≤50 chars> | slack:#<channel> | meeting:<title> | cem"}]}
+{"open_issues": [{"title": "short stable name", "org": "fs|gohm|diefi|personal", "severity": "high|med|low", "owner": "person or ?", "next_action": "one line", "first_seen": "YYYY-MM-DD", "source": "clickup:<task_id from the task link> | email:<the email's tag, e.g. email:FS2 — the system converts it to a permanent id> | slack:#<channel> | meeting:<title> | cem"}]}
 \`\`\`
-Ledger rules: (a) CARRY every still-open ledger item, KEEPING its original first_seen AND source EXACTLY; (b) NEW issues get first_seen=${d.todayDate} and a source describing where you saw the evidence; (c) RESOLVED items are dropped from the JSON (mention them in Since Yesterday instead); (d) max 15 items — merge duplicates, drop stale trivia; (e) titles must stay stable day-to-day so items are trackable; (f) an item whose source is an email counts as RESOLVED once that email is no longer in today's inbox — Cem archives mail only after handling it, so drop the item silently; (g) if Cem's RECENT MESSAGES say an item is done/handled/drop it (e.g. "done: TEYDEB"), drop it and list it under RESOLVED as "(per Cem)".`;
+Ledger rules: (a) CARRY every still-open ledger item, KEEPING its original first_seen AND source EXACTLY (if a carried item lacks a source and you can now see its origin in today's data, add it); (b) NEW issues get first_seen=${d.todayDate} and a source — prefer machine-checkable sources (clickup:/email:) because the system auto-resolves items by re-checking the source each morning; (c) RESOLVED items (including every ✅ AUTO-RESOLVED item above) are dropped from the JSON and mentioned in Since Yesterday instead; (d) max 15 items — merge duplicates, drop stale trivia; (e) titles must stay stable day-to-day so items are trackable.`;
 
 return [{ json: { prompt, todayDate: d.todayDate, emailIndex } }];

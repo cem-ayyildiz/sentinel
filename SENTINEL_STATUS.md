@@ -385,3 +385,22 @@ view so the ledger carried it forever. Fixes:
   meeting series in Calendar.
 - Deferred (next round): two-stage analyst split (per-company extraction + cockpit synthesizer) —
   workflow-graph change, do it as its own tested refactor.
+
+### §10.4 — v3.4 automatic source verification (2026-07-02, Cem's fifth feedback round)
+Cem REJECTED the "done: X" reply channel — telling Sentinel what he already did in Gmail/ClickUp
+is double work. Replaced with **automatic verification against the source of truth**:
+- **Load Registry** query now also returns `last_open_issues` (yesterday's ledger) so the
+  collector can see it.
+- **Collector "LEDGER SOURCE VERIFICATION"** (end of Collect All Sources): for each ledger item,
+  `clickup:<id>` → GET the task; status review/done/closed ⇒ resolved. `email:<acct>:<id>` →
+  no longer in today's inbox ⇒ resolved ("archived = handled"). Output `out.ledgerAutoResolved`.
+- **build-prompt** renders "✅ AUTO-RESOLVED at the source (code-verified)" inside the ledger
+  block; model must drop those items and list them under RESOLVED as "auto-verified".
+  All "done:/drop:" language removed.
+- **parse-output `canonSource`**: model writes `email:FS2` (its tag); converted via emailIndex to
+  permanent `email:<account>:<gmail-id>` so tomorrow's verification is machine-checkable.
+  Source contract prefers machine-checkable sources (clickup:/email:).
+- **Turkish meetings** (Cem's hypothesis — CONFIRMED): Gemini "Take notes for me" supports only
+  EN/FR/DE/IT/JA/KO/PT/ES as of 2026 — **no Turkish**. Turkish meetings cannot produce Gemini
+  notes at all. Enable Gemini notes on the ENGLISH recurring meetings (DIEFI, Robust6G, board);
+  for Turkish meetings a third-party recorder or no notes — the daily gap-alarm stays informational.

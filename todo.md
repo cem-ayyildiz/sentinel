@@ -72,10 +72,13 @@ IDs/gotchas in `SENTINEL_STATUS.md` (registry/cadence work is §9).
       (replaces Top Priorities — same-rubric twin sections were the structural cause of duplicates);
       Schedule skips routine dailies/standups (dailies appear only as "raise X" venues)
 - [x] **v3.3 (provenance round)** — ledger `source` field + "(src: …)" on RADAR lines (every item
-      traceable to its origin); "done: X"/"drop: X" replies resolve ledger items; `focus:` command
-      (14-day standing focus); 📌 Schedule now rendered deterministically in code from the
-      calendars; Friday ledger-health (aging >7d computed in code); account-aware Gmail links in
-      signals; notes "pipeline bug" root-caused to Gemini not enabled on recurring meetings
+      traceable to its origin); `focus:` command (14-day standing focus); 📌 Schedule now rendered
+      deterministically in code from the calendars; Friday ledger-health (aging >7d computed in
+      code); account-aware Gmail links in signals
+- [x] **v3.4 (auto-verification)** — ledger items resolve THEMSELVES: collector re-checks each
+      item's source every morning (clickup:<id> → task review/done/closed; email:<acct>:<id> →
+      left the inbox) → "✅ auto-resolved at source". The "done: X" reply channel was Cem-rejected
+      (double work) and removed. Sources are canonicalized to machine-checkable form on store.
 
 ---
 
@@ -87,10 +90,11 @@ IDs/gotchas in `SENTINEL_STATUS.md` (registry/cadence work is §9).
 ---
 
 ## 🚀 Next capabilities (in value order)
-- [ ] **⚠️ ON CEM: enable "Take notes with Gemini" on the recurring meeting series** — investigation
-      (2026-07-02, STATUS §10.3) proved the pipeline works; notes simply don't exist for most
-      recurring meetings (Jul 1: 8 meetings, zero Gemini docs in either account). One-time Calendar
-      setting per series; the gap-alarm shows the miss rate daily.
+- [ ] **⚠️ ON CEM: enable "Take notes with Gemini" on the ENGLISH recurring meeting series**
+      (DIEFI, Robust6G, board, Team Leads) — investigation (STATUS §10.3) proved the pipeline
+      works; notes simply don't exist for most recurring meetings. NOTE (§10.4): Gemini notes do
+      NOT support Turkish (EN/FR/DE/IT/JA/KO/PT/ES only) — Turkish meetings can't produce notes
+      regardless of settings; consider a third-party recorder for those or accept the gap.
 - [ ] **Decision log from transcripts** (design principle #4) — extract technical decisions +
       rationale from meeting notes into a durable, queryable log (the `decisions` table currently
       holds triage verdicts, which is a different thing). Unblocked once Gemini notes flow.

@@ -419,4 +419,32 @@ for (const [org, name] of [['freshsens','FreshSens'],['gohm','GOHM'],['diefi','D
   } catch (e) { out.clickupOverdue.push({ org: name, count: 0, tasks: [], error: e.message }); }
 }
 
+// ===== LEDGER SOURCE VERIFICATION — resolve items by re-checking their source of truth =====
+// Cem cleans his mail / closes his ClickUp tasks; Sentinel must notice ON ITS OWN — he will
+// never tell Sentinel twice. clickup:<id> → resolved when the task hits review/done/closed;
+// email:<acct>:<id> → resolved when the mail is no longer in the inbox (archived = handled).
+out.ledgerAutoResolved = [];
+try {
+  const ledger = ($('Load Registry').first().json.last_open_issues) || [];
+  const inboxIds = new Set([...(out.emailsFs || []), ...(out.emailsGohm || [])].map(e => e.id));
+  for (const it of ledger) {
+    if (!it || typeof it !== 'object' || !it.source) continue;
+    const src = String(it.source);
+    let resolved = null;
+    const cuM = src.match(/^clickup:([a-z0-9]+)/i);
+    const emM = src.match(/^email:(fs|gohm):([a-f0-9]+)/i);
+    if (cuM) {
+      try {
+        const t = J(await http(`https://api.clickup.com/api/v2/task/${cuM[1]}`));
+        const st = ((t.status || {}).status || '').toLowerCase();
+        const ty = (t.status || {}).type;
+        if (ty === 'closed' || ty === 'done' || st === 'review') resolved = `ClickUp task now "${st}"`;
+      } catch (e) { /* task unreadable — carry the item */ }
+    } else if (emM) {
+      if (!inboxIds.has(emM[2])) resolved = 'mail archived by Cem (= handled)';
+    }
+    if (resolved) out.ledgerAutoResolved.push({ title: it.title, why: resolved });
+  }
+} catch (e) { out.errors.push('Ledger verify: ' + e.message); }
+
 return [{ json: out }];

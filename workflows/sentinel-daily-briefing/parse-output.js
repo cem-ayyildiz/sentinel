@@ -81,6 +81,18 @@ const archive = [];
 // missing fields; first_seen defaults to today so ages stay computable from day one.
 const todayDate = $('Build Analyst Prompt').first().json.todayDate;
 const ORGS = ['fs', 'gohm', 'diefi', 'personal'];
+// Canonicalize sources: the model writes email tags ("email:FS2"); convert to the permanent
+// account+message-id form the collector can re-verify tomorrow (auto-resolution).
+const canonSource = (src) => {
+  if (!src) return null;
+  let s = String(src).trim();
+  const tag = s.match(/^email:([A-Z]{2,3}\d+)\b/i);
+  if (tag) {
+    const ref = emailIndex[tag[1].toUpperCase()];
+    if (ref) s = `email:${ref.account}:${ref.id}`;
+  }
+  return s.substring(0, 90);
+};
 const openIssues = (Array.isArray(actions.open_issues) ? actions.open_issues : []).map(it => {
   if (typeof it === 'string') return { title: it.substring(0, 200), org: null, severity: null, owner: null, next_action: null, first_seen: todayDate };
   if (!it || typeof it !== 'object' || !it.title) return null;
@@ -91,7 +103,7 @@ const openIssues = (Array.isArray(actions.open_issues) ? actions.open_issues : [
     owner: it.owner ? String(it.owner).substring(0, 60) : null,
     next_action: it.next_action ? String(it.next_action).substring(0, 200) : null,
     first_seen: /^\d{4}-\d{2}-\d{2}$/.test(String(it.first_seen || '')) ? it.first_seen : todayDate,
-    source: it.source ? String(it.source).substring(0, 90) : null,
+    source: canonSource(it.source),
   };
 }).filter(Boolean).slice(0, 20);
 
