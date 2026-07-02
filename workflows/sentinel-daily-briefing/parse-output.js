@@ -25,6 +25,21 @@ if (matches.length) {
 // Slack mrkdwn uses *single* asterisks; the model occasionally slips into **markdown bold**.
 prose = prose.replace(/\*\*(.+?)\*\*/g, '*$1*');
 
+// Deterministic no-duplication guard: the model sometimes repeats a YOUR DAY task inside
+// ⏳ Overdue (occasionally with a contradictory verdict). Drop any Overdue bullet whose
+// task id already appeared earlier in the prose — the earlier (higher-precedence) mention wins.
+{
+  const seen = new Set();
+  let inOverdue = false;
+  prose = prose.split('\n').filter(line => {
+    if (line.startsWith('*') || /^─{4,}/.test(line)) inOverdue = /⏳/.test(line);
+    const ids = [...line.matchAll(/app\.clickup\.com\/t\/(\w+)/g)].map(m => m[1]);
+    if (inOverdue && ids.some(id => seen.has(id))) return false;
+    ids.forEach(id => seen.add(id));
+    return true;
+  }).join('\n');
+}
+
 // Auto-archiving retired — Cem curates his own inbox now, so Sentinel never archives mail.
 const archive = [];
 
