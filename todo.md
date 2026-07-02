@@ -64,6 +64,9 @@ IDs/gotchas in `SENTINEL_STATUS.md` (registry/cadence work is §9).
       failing silently (notes were missing on most days)
 - [x] **Collector fixes** — Personal/Home shows ALL open tasks (was: only touched <7d);
       sprint fallback prefers the most recently started sprint (was: farthest future)
+- [x] **v3.1 (Cem's feedback, same day)** — email safety net REMOVED (archived = handled, never
+      resurfaces anywhere incl. triage queue); strict no-duplication rule across cockpit sections;
+      cockpit ≤300 words so it fits one Slack message (detail continues in the thread by design)
 
 ---
 

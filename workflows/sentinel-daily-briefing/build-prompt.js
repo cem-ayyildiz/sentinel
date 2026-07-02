@@ -33,16 +33,10 @@ const renderEmails = (arr, prefix, account) => {
     return `[${tag}] ${link(gmailUrl(account, e.id), e.subject)} — from ${esc(e.from)}\n     (${flags})\n     ${e.snippet}`;
   }).join('\n');
 };
-// Inbox = Cem's curated focus; the "net" items arrived recently but he already moved them OUT of
-// the inbox — shown only because they look urgent (safety net). Render them separately.
-const fsFocus = (d.emailsFs || []).filter(e => !e.outsideInbox);
-const fsNet   = (d.emailsFs || []).filter(e => e.outsideInbox);
-const goFocus = (d.emailsGohm || []).filter(e => !e.outsideInbox);
-const goNet   = (d.emailsGohm || []).filter(e => e.outsideInbox);
-const emailsFsBlock = renderEmails(fsFocus, 'FS', 'fs');
-const emailsGohmBlock = renderEmails(goFocus, 'GO', 'gohm');
-const netFsBlock = renderEmails(fsNet, 'FSX', 'fs');
-const netGohmBlock = renderEmails(goNet, 'GOX', 'gohm');
+// Inbox = Cem's curated working set. Archived mail = already read AND handled — it must NEVER
+// appear in the briefing (the old "safety net" was removed on Cem's request, 2026-07-02).
+const emailsFsBlock = renderEmails(d.emailsFs || [], 'FS', 'fs');
+const emailsGohmBlock = renderEmails(d.emailsGohm || [], 'GO', 'gohm');
 // Cem's recent DM messages — top-level AND thread replies (his stated daily focus lives here).
 const cemChat = d.cemChat || [];
 const cemChatBlock = cemChat.length
@@ -176,7 +170,7 @@ Profile: ${profileStr}
 Recent decisions:
 ${decisionsStr}
 ╚════════════════════════════════════════════════════════════╝
-When an inbox email or task closely matches how Cem has decided before, pre-classify it: in Inbox Triage note "(likely <verdict> — matches past)". Cem now curates his own inbox — do NOT propose archiving anything; just triage what he chose to keep in the inbox.
+When an inbox email or task closely matches how Cem has decided before, pre-classify it: in Inbox Triage note "(likely <verdict> — matches past)". Cem curates his own inboxes: what is IN the inbox still needs something; what he archived is READ AND HANDLED. Do NOT propose archiving, and NEVER reference mail that is not in the inbox data above.
 
 ═══════════ 🎯 CEM'S RECENT MESSAGES TO YOU (DM + briefing-thread replies, last 3 days — his stated focus/priorities OVERRIDE your ranking) ═══════════
 ${cemChatBlock}
@@ -186,12 +180,6 @@ ${emailsFsBlock}
 
 ═══════════ INBOX — GOHM (cem.ayyildiz@gohm.tech) — Cem's curated focus ═══════════
 ${emailsGohmBlock}
-
-═══════════ ⚠️ SAFETY NET — arrived in the last 2 days but NOT in the inbox (Cem already archived/sorted them); shown ONLY because they look urgent ═══════════
-FreshSens:
-${netFsBlock}
-GOHM:
-${netGohmBlock}
 
 ═══════════ CALENDAR — FreshSens (yesterday → today) ═══════════
 ${fmtEvents(d.calFs)}
@@ -235,16 +223,19 @@ ${fmtOverdue(oDiefi.tasks)}
 
 ${d.errors && d.errors.length ? '⚠️ Collection issues (mention in the briefing if they hide data Cem relies on): ' + d.errors.join('; ') + '\n' : ''}
 ═══════════════════ PRODUCE THE BRIEFING ═══════════════════
-Write in Slack markdown (*bold*, not **). Start DIRECTLY with the cockpit (no title/date line — one is prepended). STRUCTURE: a short cross-org COCKPIT, then ONE self-contained block per company. Use a divider line "───────────" between the cockpit and each company block. The cockpit is delivered as the main Slack message and the company blocks go to a thread — so the cockpit must stand alone. Keep each company's content fully inside its block — do NOT mix orgs.
+Write in Slack markdown (*bold*, not **). Start DIRECTLY with the cockpit (no title/date line — one is prepended). STRUCTURE: a short cross-org COCKPIT (YOUR DAY · Since Yesterday · Schedule · Top Priorities · Overdue), then the meetings recap, then ONE self-contained block per company. Use a divider line "───────────" after the cockpit and between all following blocks. ONLY the cockpit is delivered as the main Slack message — everything after the first divider (meetings recap + company blocks) goes to a thread — so the cockpit must stand alone AND fit in one message. Keep each company's content fully inside its block — do NOT mix orgs.
 
-══════ COCKPIT (cross-org — HARD LIMIT 400 words; this is the only part Cem is guaranteed to read) ══════
+══════ COCKPIT (cross-org — HARD LIMIT 300 words so it fits ONE Slack message; this is the only part Cem is guaranteed to read) ══════
+NO-DUPLICATION RULE (strict): each task/email/issue appears in EXACTLY ONE cockpit section — precedence: YOUR DAY > Top Priorities > Overdue > Schedule > Since Yesterday. If it's in YOUR DAY, it must NOT be repeated in Top Priorities or Overdue (and vice versa). Company blocks add team-level detail only — never restate a cockpit item beyond at most a 3-word pointer.
 *🎯 YOUR DAY* — THE deliverable: the 3–5 things CEM PERSONALLY should do today, ranked by this rubric (highest first):
    (1) production/customer impact happening now → (2) external deadline today/tomorrow → (3) unblocks another person → (4) advances a 2026 goal → (5) everything else.
    Each line: "N. <link|action verb + object> — why now · ⏱ estimate". Sum of estimates ≤ 60 min. If Cem stated a focus in HIS RECENT MESSAGES, item 1 MUST serve it and say "(your stated focus)". Actions you'd otherwise scatter through the briefing ("ping X", "confirm Y") belong ONLY here or in the ledger — do not sprinkle asks elsewhere.
-*🔁 Since Yesterday* — derive STRICTLY from the OPEN ISSUE LEDGER + today's data: STILL OPEN (use the ledger's day counts verbatim), RESOLVED (say what closed it), NEW. 3–5 lines. If the ledger is empty: "First structured run — ledger seeded."
-*📌 Today's Schedule* — all orgs on ONE timeline; each meeting tagged 🔴 must-attend / 🟡 optional / ⚪ routine AND [FS]/[GOHM]/[DIEFI]; note prep; resolve conflicts.
-*🔥 Top Priorities* (max 6) — ranked ACROSS all orgs with the SAME rubric as YOUR DAY, each tagged [FS]/[GOHM]/[DIEFI] AND with the 2026 goal it advances as [G: <3-4 word goal shorthand>] or [off-roadmap]. CONNECT signals; PULL IN any ⚡ escalations. Reference email tags like [FS3]. ALWAYS pull in any payment / fee / invoice / deadline / suspension / account-closure notice from the inboxes WITH its date and amount — never bury a "pay-or-it-gets-cancelled" item.
-*⏳ Overdue (yours: ${overdueTotal})* — pick the 3 most consequential of Cem's overdue tasks: each with its link + one verdict: DO today / RESCHEDULE to <date> / DELEGATE to <person>. ${isFriday ? 'Friday sweep: after the top 3, group the REST into "reschedule / delegate / drop candidates" buckets (counts + a few named examples) so the debt actually shrinks.' : 'One closing line: what the remaining count is and the single oldest item.'}
+*🔁 Since Yesterday* — derive STRICTLY from the OPEN ISSUE LEDGER + today's data: STILL OPEN (use the ledger's day counts verbatim), RESOLVED (say what closed it), NEW. Max 3 lines. If the ledger is empty: "First structured run — ledger seeded."
+*📌 Today's Schedule* — all orgs on ONE timeline, ONE compact line per meeting: time, 🔴/🟡/⚪ tag, [FS]/[GOHM]/[DIEFI], name. Add prep notes ONLY where prep is genuinely needed; resolve conflicts in one line.
+*🔥 Top Priorities* (max 5) — ranked ACROSS all orgs with the SAME rubric as YOUR DAY, each tagged [FS]/[GOHM]/[DIEFI] AND with the 2026 goal it advances as [G: <3-4 word goal shorthand>] or [off-roadmap]. CONNECT signals; PULL IN any ⚡ escalations. Reference email tags like [FS3]. ALWAYS pull in any payment / fee / invoice / deadline / suspension / account-closure notice from the inboxes WITH its date and amount — never bury a "pay-or-it-gets-cancelled" item.
+*⏳ Overdue (yours: ${overdueTotal})* — pick the 3 most consequential of Cem's overdue tasks NOT already linked anywhere above (a link may appear ONCE in the whole cockpit — pick the next-most-consequential instead of repeating): each with its link + one verdict: DO today / RESCHEDULE to <date> / DELEGATE to <person>. ${isFriday ? 'Friday sweep: after the top 3, group the REST into "reschedule / delegate / drop candidates" buckets (counts + a few named examples) so the debt actually shrinks.' : 'One closing line: what the remaining count is and the single oldest item.'}
+
+───────────
 *🗣️ From Yesterday's Meetings* — all orgs; decisions/action items landing on Cem. 1 line/meeting; skip routine standups unless notable. If notes are missing for meetings that happened, say so explicitly (never guess what happened).
 
 ───────────
@@ -253,13 +244,13 @@ Write in Slack markdown (*bold*, not **). Start DIRECTLY with the cockpit (no ti
 *Board hygiene* — surface the ⚠️ flags (stale in-progress, missing story points, nothing in review) as a gentle nudge — the team doesn't always keep the board honest.
 *Management* — one line: what Baran/Cem moved.
 *🚨 Incidents* — correlate FreshSens Slack alarms into incidents (severity, root-cause hypothesis, owner, next action): #fs-alerts, #thingsboard_alarms, #operation-alerts, #deployments, #produce_alarms, #support. If quiet, say so.
-${isFriday ? '*📊 Weekly Review* — completed issues + story points PER PERSON this week (from the weekly data above; actor-credited), the Multica Agent\'s deliveries (separate line, do not double-count), and a short Sales / Team Leads / Fundraising summary. Mirror Cem\'s sheet people: Gabby, Sevval, Sina Can, Sultan, Muhammad, Multica Agent.\n' : ''}*📨 Inbox — FreshSens* (ca@freshsens.ai) — Cem curates this inbox himself, so treat every FS email as kept-on-purpose: (a) *Reply needed* (max 5) — sender + ask + [tag]; (b) *Delegate* — who owns it. Do NOT suggest archiving. If any ⚠️ SAFETY NET item is FreshSens, flag it: "arrived but not in your inbox — looks urgent, did you mean to clear it?"
+${isFriday ? '*📊 Weekly Review* — completed issues + story points PER PERSON this week (from the weekly data above; actor-credited), the Multica Agent\'s deliveries (separate line, do not double-count), and a short Sales / Team Leads / Fundraising summary. Mirror Cem\'s sheet people: Gabby, Sevval, Sina Can, Sultan, Muhammad, Multica Agent.\n' : ''}*📨 Inbox — FreshSens* (ca@freshsens.ai) — Cem curates this inbox himself, so treat every FS email as kept-on-purpose: (a) *Reply needed* (max 5) — sender + ask + [tag]; (b) *Delegate* — who owns it. Do NOT suggest archiving; never mention mail that isn't in the inbox data.
 
 ───────────
 ══════ 🛰️ GOHM ══════
 *Projects* — Management hub (Robust6G coordination), Robust6G deadlines (D1.4 etc.), Q-TRUST6G (incoming): status, what moved, what needs Cem. Keep GM altitude: projects, deadlines, people — not code detail.
 *🚨 Incidents* — correlate GOHM alarms (#gohm-alerts, e.g. Meysu flapping) into incidents. If quiet, say so.
-*📨 Inbox — GOHM* (cem.ayyildiz@gohm.tech) — Cem curates this inbox; triage the GO-tagged emails: reply / delegate (do NOT suggest archiving). Flag any GOHM ⚠️ SAFETY NET item the same way. NOTE: DIEFI-related mail also arrives here — route DIEFI items to the DIEFI block below.
+*📨 Inbox — GOHM* (cem.ayyildiz@gohm.tech) — Cem curates this inbox; triage the GO-tagged emails: reply / delegate (do NOT suggest archiving; never mention mail that isn't in the inbox data). NOTE: DIEFI-related mail also arrives here — route DIEFI items to the DIEFI block below.
 
 ───────────
 ══════ 🔬 DIEFI ══════
@@ -272,12 +263,12 @@ ${isFriday ? '*📊 Weekly Review* — completed issues + story points PER PERSO
 ══════ ✅ Quick Wins ══════
 (1–3) closable in <15 min, any org, each with its link.
 
-Rules: direct, no filler, no restating raw data. Tight lines (1–2 each). NEVER mix orgs across blocks. Slack mrkdwn STRICT: *single asterisks* for bold (never **), links as <url|text>, no markdown tables, no "|" pipes outside links — use "• Label — value" bullets. Cockpit ≤ 400 words; whole briefing hard cap 1100 words.
+Rules: direct, no filler, no restating raw data. Tight lines (1–2 each). NEVER mix orgs across blocks. Honor the NO-DUPLICATION rule. Slack mrkdwn STRICT: *single asterisks* for bold (never **), links as <url|text>, no markdown tables, no "|" pipes outside links — use "• Label — value" bullets. Cockpit ≤ 300 words; whole briefing hard cap 1000 words.
 
 After the prose, on a new line, output EXACTLY one fenced JSON block — this is tomorrow's OPEN ISSUE LEDGER, so treat it as a database update, not a summary:
 \`\`\`json
 {"open_issues": [{"title": "short stable name", "org": "fs|gohm|diefi|personal", "severity": "high|med|low", "owner": "person or ?", "next_action": "one line", "first_seen": "YYYY-MM-DD"}]}
 \`\`\`
-Ledger rules: (a) CARRY every still-open ledger item, KEEPING its original first_seen date EXACTLY; (b) NEW issues get first_seen=${d.todayDate}; (c) RESOLVED items are dropped from the JSON (mention them in Since Yesterday instead); (d) max 15 items — merge duplicates, drop stale trivia; (e) titles must stay stable day-to-day so items are trackable.`;
+Ledger rules: (a) CARRY every still-open ledger item, KEEPING its original first_seen date EXACTLY; (b) NEW issues get first_seen=${d.todayDate}; (c) RESOLVED items are dropped from the JSON (mention them in Since Yesterday instead); (d) max 15 items — merge duplicates, drop stale trivia; (e) titles must stay stable day-to-day so items are trackable; (f) an item whose ONLY evidence was an email counts as RESOLVED once that email is no longer in today's inbox — Cem archives mail only after handling it, so drop the item silently.`;
 
 return [{ json: { prompt, todayDate: d.todayDate, emailIndex } }];

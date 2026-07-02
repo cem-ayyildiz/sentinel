@@ -331,3 +331,17 @@ carry real secrets); build-prompt/parse-output full overwrite; Load Context quer
 **Known follow-ups (in todo.md):** meeting-notes pipeline reliability (root cause), transcript
 decision log (principle #4), `/focus` command, split analyst (per-company extraction + synthesis),
 fallback LLM credential.
+
+### §10.1 — v3.1 fixes from Cem's first-feedback round (2026-07-02, same day)
+Cem's feedback on the first live v3 briefing:
+1. **Email "safety net" REMOVED** — his contract is *inbox = needs something; archived = read AND
+   handled (task created / delegated / skipped) = DONE*. Re-surfacing archived mail (DocuSign
+   off-time form, THRIVE finalist thread) put handled items back on the board. Collector now
+   fetches `in:inbox` ONLY (also stops archived mail leaking into signals/triage queue);
+   all SAFETY NET / FSX / GOX rendering and prompt language deleted.
+2. **NO-DUPLICATION rule** — an item appears in exactly ONE cockpit section (precedence:
+   YOUR DAY > Top Priorities > Overdue > Schedule > Since Yesterday); company blocks may not
+   restate cockpit items ("İsmail Abi salary" had appeared 3×).
+3. **Cockpit tightened to ≤300 words** (was 400 target, 517 actual → cockpit spilled into the
+   thread and Cem asked whether the report was "divided in half"). Schedule = one line per
+   meeting; total briefing cap 1000 words. Cockpit must fit ONE Slack message.

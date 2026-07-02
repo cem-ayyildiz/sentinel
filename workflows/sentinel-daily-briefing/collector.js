@@ -43,14 +43,11 @@ const header = (msg, name) => {
 };
 
 // ===== EMAIL (both accounts) =====
-// New model: Cem curates his OWN inbox (Sentinel no longer auto-archives). So the inbox IS the
-// focus — report on whatever he left there. PLUS a safety net: scan mail that arrived in the
-// last 2 days but is already OUT of the inbox (he archived/sorted it) and surface only the ones
-// that look urgent, in case he cleared something important. Escalation keywords come from the
-// registry's gmail block (always_daily_keywords).
-const gmailCfg = ((((($('Load Registry').first().json || {}).workspaces) || []).find(r => r.kind === 'gmail_rule')) || {}).config || {};
-const ESC_KW = (gmailCfg.always_daily_keywords || ['investor', 'customer', 'urgent', 'deadline', 'incident', 'outage', 'invoice overdue']).map(k => String(k).toLowerCase());
-
+// Cem curates his OWN inbox, and that is the whole contract: inbox = still needs something;
+// archived = already read AND handled (task created / delegated / skipped) — DONE. Sentinel
+// reports ONLY what is in the inbox and NEVER resurfaces archived mail. (The old "safety net"
+// that re-surfaced urgent-looking archived mail was removed on Cem's request, 2026-07-02 —
+// it kept dragging already-handled items back onto his prioritization board.)
 const fetchEmails = async (cid, secret, rt, label) => {
   const token = await googleToken(cid, secret, rt);
   const listIds = async (q, max) => {
@@ -71,7 +68,7 @@ const fetchEmails = async (cid, secret, rt, label) => {
     if (labels.includes('CATEGORY_FORUMS')) return 'forums';
     return 'primary';
   };
-  const shape = (m, outsideInbox) => {
+  const shape = (m) => {
     const labels = m.labelIds || [];
     const from = header(m, 'From');
     return {
@@ -84,22 +81,10 @@ const fetchEmails = async (cid, secret, rt, label) => {
       category: catOf(labels),
       bulk: !!header(m, 'List-Unsubscribe'),
       automated: /no-?reply|noreply|notifications?@|mailer-daemon|donotreply|do-not-reply|@.*\.(atlassian|github|gitlab)\b/i.test(from),
-      outsideInbox: !!outsideInbox, escalated: false,
     };
   };
-  // 1) FOCUS = whatever Cem left in the inbox
-  const inbox = (await meta(await listIds('in:inbox', 25))).filter(Boolean).map(m => shape(m, false));
-  // 2) SAFETY NET = recently-arrived mail already out of the inbox; keep only urgent-looking ones
-  let net = [];
-  try {
-    const outside = (await meta(await listIds('newer_than:2d -in:inbox -in:sent -in:draft -in:spam -in:trash -in:chats', 25)))
-      .filter(Boolean).map(m => shape(m, true));
-    net = outside.filter(e => {
-      const hay = (e.subject + ' ' + e.from + ' ' + e.snippet).toLowerCase();
-      return e.important || e.starred || ESC_KW.some(k => hay.includes(k));
-    }).map(e => ({ ...e, escalated: true })).slice(0, 8);
-  } catch (e) { /* safety net is best-effort */ }
-  return inbox.concat(net);
+  // The inbox IS the working set — whatever Cem left there, nothing else.
+  return (await meta(await listIds('in:inbox', 25))).filter(Boolean).map(shape);
 };
 
 try { out.emailsFs = await fetchEmails(FS.id, FS.secret, RT.fsGmail, 'FS'); }

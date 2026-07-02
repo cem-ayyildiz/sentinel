@@ -10,7 +10,7 @@ It is built as an **n8n workflow** driven by Claude, with all integrations done 
 
 ## What it does
 
-- **Reads everything** — both Gmail inboxes (+ a safety net over recently-archived mail), both calendars, Gemini meeting notes from Drive, every Slack channel it's in (public + private), Cem's own DM/thread messages (his stated focus), and ClickUp across FreshSens / GOHM / DIEFI.
+- **Reads everything** — both Gmail inboxes (inbox only — archived mail is treated as *handled* and never resurfaces), both calendars, Gemini meeting notes from Drive, every Slack channel it's in (public + private), Cem's own DM/thread messages (his stated focus), and ClickUp across FreshSens / GOHM / DIEFI.
 - **Prioritizes for Cem, not just the org** — 🎯 YOUR DAY ranks his personal top 3–5 actions by an explicit rubric (production impact → external deadline → unblocks a person → 2026 goal), each with a clickable link and a ⏱ estimate; 🔥 Top Priorities are ranked against the **2026 Miro roadmap goals** and tagged with the goal they advance.
 - **Tracks continuity statefully** — an **open-issue ledger** (JSON, stored per briefing) carries every unresolved item with its `first_seen` date; day-counts are computed from state, never guessed by the model.
 - **Triages the overdue debt** — surfaces the top 3 of Cem's overdue tasks daily with a verdict each (do / reschedule / delegate) and a Friday sweep over the rest.
@@ -101,7 +101,7 @@ The prose briefing is **grouped by company**: a short cross-org cockpit, then on
 self-contained block per company. **Delivery:** the cockpit is the main Slack message
 (hard-capped, the only part Cem must read); the company blocks arrive as threaded replies.
 
-**Cockpit (cross-org, ≤400 words):**
+**Cockpit (cross-org, ≤300 words, no item repeated across sections):**
 1. **🎯 YOUR DAY** — Cem's personal top 3–5 actions, rubric-ranked, linked, time-estimated (≤60 min total); honors any focus he stated in DM/thread replies
 2. **🔁 Since Yesterday** — from the stored open-issue ledger: still-open (real day-counts) / resolved / new
 3. **📌 Today's Schedule** — one timeline, each meeting tagged 🔴/🟡/⚪ and [FS]/[GOHM]/[DIEFI]
