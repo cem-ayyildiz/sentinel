@@ -24,8 +24,8 @@ const SPACE_ORG = {
   // FreshSens
   '90090136601':'freshsens', '90010053606':'freshsens', '90152680846':'freshsens',
   '90155478263':'freshsens', '90159399897':'freshsens', '901511184184':'freshsens',
-  // GOHM
-  '90090428426':'gohm', '90151309240':'gohm',
+  // GOHM (gohm-diefi + Villa Kurt Development live in the GOHM team — added 2026-07-02)
+  '90090428426':'gohm', '90151309240':'gohm', '901511313936':'gohm', '901511300841':'gohm',
   // DIEFI
   '90143023495':'diefi',
 };

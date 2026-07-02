@@ -111,9 +111,13 @@ Plus a **Chat** assistant (DM it questions / commands).
 - Key lists: **Dev Sprint 64 (current) = `901524043562`**, Sprint 63 = `901523674208`,
   Team Leads "June 2026" = `901523773592`, FreshSens "Sentinel Inbox" = `901524068347`.
 - Issue-router inbox lists: freshsens `901524068347`, gohm `901524068348`, diefi `1000360000000408`.
-- **ClickUp webhook** (FreshSens team): id `c349e1ab-7dc1-4210-9c88-4b55f792a706`, endpoint
-  `…/webhook/sentinel-clickup-events`, events `taskStatusUpdated, taskAssigneeUpdated,
-  taskCommentPosted`.
+- **ClickUp webhooks** (all three teams, same endpoint `…/webhook/sentinel-clickup-events`,
+  events `taskStatusUpdated, taskAssigneeUpdated, taskCommentPosted`):
+  FreshSens `c349e1ab-7dc1-4210-9c88-4b55f792a706`,
+  GOHM `3d8f7632-a5b9-47e5-aba6-ae28d4f74b33` + DIEFI `d40d064a-1bf6-47d0-9aac-7ea93a5fdb98`
+  (both registered 2026-07-02; verified end-to-end via a villakurt test comment → `clickup_comments`
+  row org=gohm, test artifacts deleted). GOHM/DIEFI ledger data therefore starts 2026-07-02 —
+  their weekly SP numbers are meaningful from the week of Jul 6 onward.
 
 ### Slack
 - Bot HTTP API (token `xoxb-…`, sanitized). Mrkdwn = single `*bold*`, **no markdown tables**.

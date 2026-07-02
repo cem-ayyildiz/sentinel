@@ -103,8 +103,12 @@ IDs/gotchas in `SENTINEL_STATUS.md` (registry/cadence work is §9).
       the visible symptom). Workflow-graph change — do as its own tested refactor.
 - [ ] **Fallback LLM credential** — everything rides on one Claude CLI credential today (it ran
       dry mid-day 2026-07-02 and delayed the briefing by hours)
-- [ ] **Register ClickUp webhooks for GOHM + DIEFI teams** — the events ledger only covers the
-      FreshSens team webhook, so GOHM/DIEFI status transitions (and their weekly SP) are invisible
+- [x] **Register ClickUp webhooks for GOHM + DIEFI teams** — done 2026-07-02, verified end-to-end;
+      ledger now captures all three teams (GOHM/DIEFI data accrues from Jul 2, so their first
+      meaningful weekly SP is the week of Jul 6)
+- [ ] **Fold GOHM/DIEFI into the Friday 📊 Weekly Review** — the weekly SP block (Load Context
+      query + build-prompt fmtWeekly) is FreshSens-sheet-shaped today; add per-org sections once
+      GOHM/DIEFI ledger data exists (≥ week of Jul 6)
 - [ ] **Extend SP auto-estimate to all dev tasks entering Review** (now agent-MR-only) — ~80% of
       active tasks have no points, silently undercounting weekly SP
 - [ ] **Roadmap Report upgrades** — task links; week-over-week continuity (store + diff reports);
