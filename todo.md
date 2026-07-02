@@ -101,7 +101,14 @@ IDs/gotchas in `SENTINEL_STATUS.md` (registry/cadence work is §9).
 - [ ] **Split the analyst** — per-company extraction (structured JSON) + small synthesis call for
       cockpit/YOUR DAY; the single ~65k-char mega-prompt dilutes attention (word-cap overshoot is
       the visible symptom). Workflow-graph change — do as its own tested refactor.
-- [ ] **Fallback LLM credential** — everything rides on one Claude CLI credential today
+- [ ] **Fallback LLM credential** — everything rides on one Claude CLI credential today (it ran
+      dry mid-day 2026-07-02 and delayed the briefing by hours)
+- [ ] **Register ClickUp webhooks for GOHM + DIEFI teams** — the events ledger only covers the
+      FreshSens team webhook, so GOHM/DIEFI status transitions (and their weekly SP) are invisible
+- [ ] **Extend SP auto-estimate to all dev tasks entering Review** (now agent-MR-only) — ~80% of
+      active tasks have no points, silently undercounting weekly SP
+- [ ] **Roadmap Report upgrades** — task links; week-over-week continuity (store + diff reports);
+      fold ledger SP/velocity in; export the live-only "Gather ClickUp" node source to the repo
 - [ ] **Map remaining Slack channels** in the registry (~12 unmapped default to daily) — mark weekly/muted
 - [ ] **Explicit Gmail weekly-sender folding** (optional; daily bulk/newsletter triage already covers most)
 - [ ] **Draft replies** — save ready Gmail drafts for reply-needed mail (nothing auto-sends)
