@@ -2,7 +2,7 @@
 
 A personal **chief-of-staff AI** for Cem Ayyildiz — CTO of FreshSens, GM of GOHM, and lead on the DIEFI EU research project.
 
-Every morning at **07:00 Istanbul**, Sentinel gathers Cem's entire working world (email, calendar, meeting transcripts, team Slack, and task boards across three organizations), reasons over it like an analyst, and delivers a prioritized briefing to his Slack DM: a tight **cockpit** (🎯 YOUR DAY — the 3–5 things Cem personally should do, with clickable links and time estimates) as the main message, with per-company detail in the thread. Continuity is **stateful**: an open-issue ledger stored in Postgres carries every unresolved item forward with real day-counts.
+Every morning at **05:30 Istanbul**, Sentinel gathers Cem's entire working world (email, calendar, meeting transcripts, team Slack, and task boards across three organizations), reasons over it like an analyst, and delivers a prioritized briefing to his Slack DM: a tight **cockpit** (🎯 YOUR DAY — the 3–5 things Cem personally should do, with clickable links and time estimates) as the main message, with per-company detail in the thread. Continuity is **stateful**: an open-issue ledger stored in Postgres carries every unresolved item forward with real day-counts.
 
 It is built as an **n8n workflow** driven by Claude, with all integrations done through direct API calls.
 
@@ -66,7 +66,7 @@ flowchart TB
     ROAD --> DM
 ```
 
-- **Daily Briefing** (07:00 IST) gathers everything, tiers ClickUp/Slack by the registry, reasons like an
+- **Daily Briefing** (05:30 IST) gathers everything, tiers ClickUp/Slack by the registry, reasons like an
   analyst, and DMs a company-grouped briefing — pre-classifying new items by how Cem has decided before.
 - **Decision Queue → Capture → Profile** is the learning loop: surfaced items get a verdict (reaction/reply);
   verdicts become a compact profile that sharpens tomorrow's triage.
@@ -136,7 +136,7 @@ Edit the JSON, run `infra/sync-workspaces.py`, and the briefing, issue router, a
 
 | Capability | Status |
 |---|---|
-| Daily multi-source briefing (cockpit + threaded company detail) | ✅ live (07:00 Istanbul) |
+| Daily multi-source briefing (cockpit + threaded company detail) | ✅ live (05:30 Istanbul) |
 | 🎯 YOUR DAY — rubric-ranked personal actions with links + estimates | ✅ live |
 | Stateful open-issue ledger (real day-counts, carried in Postgres) | ✅ live |
 | Overdue-debt triage (top 3 daily + Friday sweep) | ✅ live |

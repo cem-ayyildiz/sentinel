@@ -271,7 +271,7 @@ Exit criteria: 2–3 weeks of decisions; pre-classification visibly improving.
 |----------|-------|---------|---------|
 | `Sentinel · Ingest` | 1 | Webhook `/sentinel/ingest` | Claude normalize, hash dedup, store Signal |
 | `Sentinel · Adapter: <source>` | 1 | Schedule / webhook | Fetch a source, emit Signals |
-| `Sentinel · Daily Briefing` | 1 | Cron 04:00 UTC | Read Signals + profile + recent decisions → briefing |
+| `Sentinel · Daily Briefing` | 1 | Cron 02:30 UTC | Read Signals + profile + recent decisions → briefing |
 | `Sentinel · Decision Capture` | 1 | Slack Events (`reaction_added`) | Write Decisions |
 | `Sentinel · Profile` | 1 | Cron Sun 20:00 | Claude rewrites `decision_profile` |
 | `Sentinel · Issue Router` | 2 | Poll (30 min) | Dispatch executable items to a tier |

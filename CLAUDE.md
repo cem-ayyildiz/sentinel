@@ -51,7 +51,7 @@ Use the Claude CLI LangChain node (credential `xEpaYqT9ncGcZwHj`, "Tunahan Chatb
 fallback credential is on the todo list.
 
 ## Key IDs (full list in SENTINEL_STATUS §3–4)
-- Daily Briefing workflow `UR3IjaOiHX0guopW` (cron 04:00 UTC = 07:00 Istanbul).
+- Daily Briefing workflow `UR3IjaOiHX0guopW` (cron 02:30 UTC = 05:30 Istanbul).
 - Cem: Slack `UEL80DGQ5`, DM channel `D0BBRKKPGUE`, ClickUp `54229113`.
 - ClickUp teams: FreshSens `9009068877`, GOHM `42085420`, DIEFI `9014647941`.
 - Registry: `infra/workspaces.json` → `workspaces` table (`infra/sync-workspaces.py --emit-sql`).

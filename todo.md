@@ -12,7 +12,7 @@ IDs/gotchas in `SENTINEL_STATUS.md` (registry/cadence work is §9).
 ## ✅ Done (live in production)
 
 ### Morning briefing
-- [x] **Daily briefing** — 07:00 Istanbul → Cem's Slack DM; day-over-day continuity
+- [x] **Daily briefing** — 05:30 Istanbul → Cem's Slack DM; day-over-day continuity
 - [x] **Data sources**: FS+GOHM Gmail, FS+GOHM Calendar, Gemini meeting notes, all Slack
       channels (auto-discovered), ClickUp FS/GOHM/DIEFI
 - [x] **Incident correlation** (Slack alarms → incidents), **meeting context**, **inbox triage**

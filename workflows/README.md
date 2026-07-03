@@ -14,7 +14,7 @@ values live only in the n8n credential store / gitignored `credentials/`.
 | Workflow | id | Trigger | Purpose |
 |---|---|---|---|
 | **Ingest** | `k3rAxpxlhVFrD8fp` | webhook `sentinel-ingest` | Front door: normalize + hash-dedup any Signal into Postgres `signals`. |
-| **Daily Briefing** | `UR3IjaOiHX0guopW` | cron `0 4 * * *` (07:00 IST) + `sentinel-test-trigger-001` | Collect all sources → store signals → company-grouped briefing to Slack DM. |
+| **Daily Briefing** | `UR3IjaOiHX0guopW` | cron `30 2 * * *` (05:30 IST) + `sentinel-test-trigger-001` | Collect all sources → store signals → company-grouped briefing to Slack DM. |
 | **Decision Queue** | `zV37n3aaFQxMD0sd` | webhook `sentinel-postqueue` | Learning-gated triage: pre-classify vs profile, auto-skip noise, surface ≤5. |
 | **Decision Capture** | `tTq2dXFA8xc1C5uZ` | webhook `sentinel-slack-events` | Slack reactions/replies → decisions; handles issue approvals; routes chat. **Cem-only.** |
 | **Profile** | `tvUyWOphKOHpR6Wi` | cron `0 17 * * 0` + `sentinel-profile-test` | Weekly: rewrite the learned "how Cem decides" profile. |
@@ -39,7 +39,7 @@ Shared entry point for the Signal store. Any adapter (built-in, MCP, Multica) PO
 Files: `normalize.js`.
 
 ## Daily Briefing (`sentinel-daily-briefing/`)
-The chief-of-staff analyst. 07:00 Istanbul → prioritized briefing to the DM, with day-over-day continuity.
+The chief-of-staff analyst. 05:30 Istanbul → prioritized briefing to the DM, with day-over-day continuity.
 
 ```
 Schedule 07:00 ─┐
