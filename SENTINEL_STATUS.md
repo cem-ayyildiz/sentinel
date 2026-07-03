@@ -427,8 +427,12 @@ Audited ahead of the first post-v3 Friday (Jul 3). Ledger healthy (887 events, d
 - parse-output scrubs markdown-table `| a | b |` artifact lines (Slack shows raw pipes).
 **Verified via forced-Friday safe run** (set-dates isFriday=true + sends disabled, then reverted):
 📊 Weekly Review renders per person + agent line (16 MR · 42 SP) + weekly-space summary; Friday
-overdue sweep buckets (reschedule/delegate/drop) render. GOTCHA: a webhook fired ~1s after PUT
-still ran the OLD workflow version — wait a few seconds after PUT before triggering.
+overdue sweep buckets (reschedule/delegate/drop) render. GOTCHA (confirmed 2026-07-03, stronger
+than "wait a few seconds"): an API **PUT updates the DB but the ACTIVE workflow keeps a cached
+in-memory copy** — webhook/cron triggers keep running the OLD node code (and the OLD cron time)
+until the workflow is reloaded. Waiting does NOT fix it. After any PUT that must take effect, POST
+`/workflows/{id}/deactivate` then `/activate` to force a reload. (Also: the default `/executions`
+list HIDES running executions — poll with `status=running` or fetch the exec id directly.)
 **Notes on data semantics:** SP is actor-credited (who moved the status), not assignee-credited —
 known todo. Missing story points on ~80% of active tasks silently undercount weekly SP (auto-
 estimate currently only fires for agent MRs — extending it to all dev tasks entering Review is a
