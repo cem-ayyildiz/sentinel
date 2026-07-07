@@ -25,7 +25,8 @@ nodes contain the real values. Therefore:
 
 ## n8n API access
 - Base `https://flow.gohm.tech/api/v1`; the **valid** `N8N_API_KEY` is in
-  `~/.claude/settings.json → mcpServers.n8n-hr.env` (the copy in `~/.claude.json` is stale → 401).
+  `~/.claude.json → mcpServers.n8n.env` (verified 2026-07-07; the old
+  `~/.claude/settings.json → mcpServers.n8n-hr` location no longer exists).
 - Always send a browser `User-Agent` (Cloudflare blocks urllib's default with error 1010).
 - PUT bodies: only `name, nodes, connections, settings`, and settings filtered to the schema
   allowlist (see SENTINEL_STATUS §2). Executions API doesn't sort reliably — sort by `int(id)` desc.

@@ -1,6 +1,6 @@
 # Sentinel — Roadmap & Status
 
-_Last updated: 2026-07-02_
+_Last updated: 2026-07-07_
 
 Sentinel runs Cem's 3-part vision end-to-end: cut noise (daily briefing + learning-gated
 triage + mail cleaning), team roadmap/SP reports, and Slack-approved issue creation — plus a
@@ -48,6 +48,11 @@ IDs/gotchas in `SENTINEL_STATUS.md` (registry/cadence work is §9).
 - [x] **Registry-driven routing** — Issue Router + Chat resolve target boards from the registry
       (default Management, ask when ambiguous)
 
+### Briefing format hardening (2026-07-07)
+- [x] **Thread blocks bulletized** — company blocks / meetings / inboxes were rendering as
+      wall-of-text paragraphs (Cem: "fix the format"); build-prompt.js now mandates one bullet
+      per team / incident / email / meeting + a FORMAT LAW rule (≤25 words/bullet, no run-ons)
+
 ### Briefing v3 — prioritization overhaul (2026-07-02) — see SENTINEL_STATUS §10
 - [x] **🎯 YOUR DAY** — cockpit leads with Cem's personal top 3–5 actions, rubric-ranked
       (production impact → external deadline → unblocks person → 2026 goal), linked, ⏱-estimated
@@ -88,7 +93,7 @@ IDs/gotchas in `SENTINEL_STATUS.md` (registry/cadence work is §9).
 ## 🔧 Production hygiene (small, do soon)
 - [ ] **Remove the test webhook** (`sentinel-test-trigger-001`) once happy — open URL triggers a real run
 - [ ] **Token resilience** — graceful-degrade is in place; plan for refresh-token revocation re-auth
-- [ ] **n8n key note** — valid key is in `~/.claude/settings.json` (mcpServers.n8n-hr); `.claude.json` is stale
+- [ ] **n8n key note** — valid key is in `~/.claude.json` → `mcpServers.n8n.env` (verified 2026-07-07; the old `settings.json` mcpServers.n8n-hr location no longer exists)
 
 ---
 

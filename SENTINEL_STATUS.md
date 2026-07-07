@@ -2,7 +2,7 @@
 
 > Single source of truth for picking up work on **Sentinel**, Cem Ayyildiz's personal AI
 > chief-of-staff. Read this first. Complements `SENTINEL_DESIGN.md` (architecture rationale)
-> and `CLAUDE.md` (deploy/test working agreement). Last updated: 2026-07-02 (§10 = briefing v3).
+> and `CLAUDE.md` (deploy/test working agreement). Last updated: 2026-07-07 (§11 = format hardening).
 
 ---
 
@@ -30,8 +30,8 @@ Plus a **Chat** assistant (DM it questions / commands).
   Leads/Fundraising) Friday-only + escalation; Slack channels tiered + org-tagged.
 - ✅ Issue routing + chat now resolve target boards from the registry (default Management, ask if
   ambiguous).
-- ⚠️ **Working n8n API key is in `~/.claude/settings.json` → `mcpServers.n8n-hr.env.N8N_API_KEY`.**
-  The one in `~/.claude.json` is STALE (401).
+- ⚠️ **Working n8n API key is in `~/.claude.json` → `mcpServers.n8n.env.N8N_API_KEY`**
+  (verified 2026-07-07; the old `settings.json` `n8n-hr` location no longer exists).
 
 ---
 
@@ -50,7 +50,8 @@ Plus a **Chat** assistant (DM it questions / commands).
 
 ### n8n
 - Base: `https://flow.gohm.tech`, public API at `/api/v1`.
-- **API key + URL live in `.mcp.json` → `mcpServers.n8n-hr.env`** (`N8N_API_KEY`, `N8N_API_URL`).
+- **API key lives in `~/.claude.json` → `mcpServers.n8n.env`** (`N8N_API_KEY`; verified working
+  2026-07-07 — older docs pointing at `.mcp.json`/`settings.json` `n8n-hr` are stale).
   NOT in the repo otherwise (deploy scripts carry `__N8N_API_KEY__` placeholder).
 - **Deploy/patch pattern** (when `/tmp` working copies are gone): GET workflow → patch node
   `jsCode`/`query` → PUT back. Two gotchas:
@@ -442,3 +443,22 @@ GOHM/DIEFI transitions are NOT captured; register webhooks for those teams if th
 concentration risk). Improvement candidates: task links (gather nodes drop URLs), week-over-week
 continuity (stateless today — store reports like briefings and diff), fold ledger SP/velocity in,
 'Gather ClickUp' node source is live-only (not in repo — export it).
+
+---
+
+## 11. Briefing format hardening (2026-07-07)
+
+Trigger: Cem — "fix the format of the report": thread sections (meetings recap, company blocks,
+inboxes) rendered as wall-of-text run-on paragraphs (each *Label* section one giant line).
+
+**Change (live in `UR3IjaOiHX0guopW`, repo synced):** `build-prompt.js` output spec now mandates
+bullets everywhere in the thread — one bullet per dev team (FS Development), per incident, per
+email/triage group (both inboxes), per meeting, per GOHM project, per DIEFI theme, per Personal
+item, per person in the Friday Weekly Review — plus a global "FORMAT LAW" rule (label line +
+"•" bullets, ≤25 words/bullet, never join items with ";" or ". " inside one bullet). Cockpit
+untouched (was already fine). Deployed via full-overwrite PUT of the Build Analyst Prompt node
+(secret-free file) + **deactivate→activate** reload; verified with a real run.
+
+Also fixed while diagnosing "no report this morning" (it HAD been delivered at 05:35 — three
+Slack parts, ok:true; the ill-formatted screenshot was Friday's briefing): stale n8n API-key
+docs — the working `N8N_API_KEY` is in `~/.claude.json → mcpServers.n8n.env` (§2 updated).

@@ -241,31 +241,31 @@ THE PARTITION RULE (this is the core design — obey it mechanically):
 *⏳ Overdue (yours: ${overdueTotal})* — the 3 most consequential of Cem's overdue tasks NOT already linked above: each with its link + one verdict: DO today / RESCHEDULE to <date> / DELEGATE to <person>. ${isFriday ? 'Friday sweep: after the top 3, add a standalone header line "*Rest (<total>):*", then render EACH bucket on ITS OWN LINE as a Slack bullet — never a run-on sentence, never nested parentheses, never "~" approximations (use exact integer counts): \n"• *Delegate (N)* — theme; 2-3 example task names → owner" \n"• *Reschedule (N)* — theme; 2-3 example task names → when" \n"• *Drop candidates (N)* — 2-3 example task names, each with a 3-4 word why". The three bucket counts should sum to the Rest total (put any remainder in the closest bucket). Keep each bucket line ≤ 25 words so it scans.' : 'One closing line: remaining count + the single oldest item.'}
 
 ───────────
-*🗣️ From Yesterday's Meetings* — all orgs; decisions/action items landing on Cem. 1 line/meeting; skip routine standups unless notable. If notes are missing for meetings that happened, say so explicitly (never guess what happened).
+*🗣️ From Yesterday's Meetings* — all orgs; decisions/action items landing on Cem. ONE bullet per meeting, each on its own line: "• *<meeting>* (time) — decision/action". Skip routine standups unless notable. If notes are missing for meetings that happened, say so explicitly (never guess what happened).
 
 ───────────
 ══════ 🏭 FRESHSENS ══════
-*Development* — per dev team (ML · Hardware · Firmware · Backend · Software · Postharvest) where inferable: shipped (✓) / in flight / blockers / who's driving. Weave in the NEW task comments (real progress/decisions).
-*Board hygiene* — surface the ⚠️ flags (stale in-progress, missing story points, nothing in review) as a gentle nudge — the team doesn't always keep the board honest.
+*Development* — ONE bullet per dev team, each on its own line: "• *<Team>* (driver) — shipped ✓ / in flight / blockers" (ML · Hardware · Firmware · Backend · Software · Postharvest, where inferable). NEVER merge teams into one paragraph. Weave in the NEW task comments (real progress/decisions). A cross-team *Blocker* gets its own bullet at the end.
+*Board hygiene* — one line: surface the ⚠️ flags (stale in-progress, missing story points, nothing in review) as a gentle nudge — the team doesn't always keep the board honest.
 *Management* — one line: what Baran/Cem moved.
-*🚨 Incidents* — correlate FreshSens Slack alarms into incidents (severity, root-cause hypothesis, owner, next action): #fs-alerts, #thingsboard_alarms, #operation-alerts, #deployments, #produce_alarms, #support. If quiet, say so.
-${isFriday ? '*📊 Weekly Review* — per-person completed issues + story points this week: use ONLY the numbers from the "Completed this week (since Monday)" list above — NEVER substitute sprint-board totals; if a sheet person is absent from that list, write "not captured this week". Then the Multica Agent\'s deliveries (separate line, do not add to human totals), and a short Sales / Team Leads / Fundraising summary. Sheet people: Gabby, Sevval, Sina Can, Sultan, Muhammad, Multica Agent.\n' : ''}*📨 Inbox — FreshSens* (ca@freshsens.ai) — Cem curates this inbox himself, so treat every FS email as kept-on-purpose: (a) *Reply needed* (max 5) — sender + ask + [tag]; (b) *Delegate* — who owns it. Do NOT suggest archiving; never mention mail that isn't in the inbox data.
+*🚨 Incidents* — ONE bullet per incident, each on its own line: "• <incident> — severity, root-cause hypothesis, owner, next action". Correlate FreshSens Slack alarms into incidents: #fs-alerts, #thingsboard_alarms, #operation-alerts, #deployments, #produce_alarms, #support. If quiet, say so in one line.
+${isFriday ? '*📊 Weekly Review* — per-person completed issues + story points this week, ONE bullet per person: use ONLY the numbers from the "Completed this week (since Monday)" list above — NEVER substitute sprint-board totals; if a sheet person is absent from that list, write "not captured this week". Then the Multica Agent\'s deliveries (own bullet, do not add to human totals), and one bullet each for Sales / Team Leads / Fundraising. Sheet people: Gabby, Sevval, Sina Can, Sultan, Muhammad, Multica Agent.\n' : ''}*📨 Inbox — FreshSens* (ca@freshsens.ai) — Cem curates this inbox himself, so treat every FS email as kept-on-purpose. ONE bullet per email or tight group: "• *Reply needed* — sender + ask + [tag]" (max 5), "• *Delegate* — item → who owns it". Do NOT suggest archiving; never mention mail that isn't in the inbox data.
 
 ───────────
 ══════ 🛰️ GOHM ══════
-*Projects* — Management hub (Robust6G coordination), Robust6G deadlines (D1.4 etc.), Q-TRUST6G (incoming): status, what moved, what needs Cem. Keep GM altitude: projects, deadlines, people — not code detail.
-*🚨 Incidents* — correlate GOHM alarms (#gohm-alerts, e.g. Meysu flapping) into incidents. If quiet, say so.
-*📨 Inbox — GOHM* (cem.ayyildiz@gohm.tech) — Cem curates this inbox; triage the GO-tagged emails: reply / delegate (do NOT suggest archiving; never mention mail that isn't in the inbox data). NOTE: DIEFI-related mail also arrives here — route each DIEFI email to the DIEFI block ONLY (an email appears exactly once in the whole briefing).
+*Projects* — ONE bullet per project (Management hub / Robust6G / Q-TRUST6G …): status, what moved, what needs Cem. Keep GM altitude: projects, deadlines, people — not code detail.
+*🚨 Incidents* — ONE bullet per incident; correlate GOHM alarms (#gohm-alerts, e.g. Meysu flapping) into incidents. If quiet, say so in one line.
+*📨 Inbox — GOHM* (cem.ayyildiz@gohm.tech) — Cem curates this inbox; triage the GO-tagged emails as bullets: "• *Reply* — …", "• *Delegate* — …", "• *Watch* — …" (do NOT suggest archiving; never mention mail that isn't in the inbox data). NOTE: DIEFI-related mail also arrives here — route each DIEFI email to the DIEFI block ONLY (an email appears exactly once in the whole briefing).
 
 ───────────
 ══════ 🔬 DIEFI ══════
-*Progress* — DIEFI Development board: what moved, deliverable deadlines, what needs Cem (incl. any DIEFI items from the GOHM inbox).
+*Progress* — bullets, one theme per line: what moved on the DIEFI Development board, deliverable deadlines, what needs Cem (incl. any DIEFI items from the GOHM inbox).
 
 ───────────
 ══════ 🏠 PERSONAL / SMART HOME ══════
-2–4 lines on open Home items; flag anything time-sensitive. (No Quick Wins section — ⚡ items live in YOUR DAY.)
+2–4 bullets on open Home items, one item/group per bullet; flag anything time-sensitive. (No Quick Wins section — ⚡ items live in YOUR DAY.)
 
-Rules: direct, no filler, no restating raw data. Tight lines (1–2 each). NEVER mix orgs across blocks. Honor THE PARTITION RULE — before finalizing, scan the whole briefing: if any link or item name appears twice, delete the lower-precedence occurrence (YOUR DAY > RADAR > Overdue > Schedule > Since Yesterday > company blocks). Slack mrkdwn STRICT: *single asterisks* for bold (never **), links as <url|text>, no markdown tables, no "|" pipes outside links — use "• Label — value" bullets. Cockpit ≤ 300 words; whole briefing hard cap 1000 words.
+Rules: direct, no filler, no restating raw data. FORMAT LAW for the thread (meetings + company blocks): every *Label* section is either ONE tight line (where the spec says "one line") or a *Label* line followed by "•" bullets — ONE item per bullet, ONE line per bullet (≤ 25 words), NEVER a running paragraph; if you catch yourself joining items with ";" or ". " inside one bullet, split them into separate bullets. NEVER mix orgs across blocks. Honor THE PARTITION RULE — before finalizing, scan the whole briefing: if any link or item name appears twice, delete the lower-precedence occurrence (YOUR DAY > RADAR > Overdue > Schedule > Since Yesterday > company blocks). Slack mrkdwn STRICT: *single asterisks* for bold (never **), links as <url|text>, no markdown tables, no "|" pipes outside links — use "• Label — value" bullets. Cockpit ≤ 300 words; whole briefing hard cap 1000 words.
 
 After the prose, on a new line, output EXACTLY one fenced JSON block — this is tomorrow's OPEN ISSUE LEDGER, so treat it as a database update, not a summary:
 \`\`\`json
