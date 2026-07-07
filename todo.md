@@ -103,6 +103,10 @@ IDs/gotchas in `SENTINEL_STATUS.md` (registry/cadence work is §9).
       works; notes simply don't exist for most recurring meetings. NOTE (§10.4): Gemini notes do
       NOT support Turkish (EN/FR/DE/IT/JA/KO/PT/ES only) — Turkish meetings can't produce notes
       regardless of settings; consider a third-party recorder for those or accept the gap.
+      Re-verified live 2026-07-07 (ClickUp [86cakqm20](https://app.clickup.com/t/86cakqm20)):
+      today's cron run (exec 5454) found notes for 2 of 7 yesterday's meetings (FS-Software
+      Technical, FS-Software Daily) and correctly flagged the other 5 as missing in the briefing
+      thread — pipeline code confirmed still working, gap is unchanged and still on Cem/team.
 - [ ] **Decision log from transcripts** (design principle #4) — extract technical decisions +
       rationale from meeting notes into a durable, queryable log (the `decisions` table currently
       holds triage verdicts, which is a different thing). Unblocked once Gemini notes flow.
