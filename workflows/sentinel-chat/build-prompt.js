@@ -6,6 +6,7 @@ const boards = g.boards || []; const refBoards = g.refBoards || []; const taskIn
 const mc = $('Gather Mail & Calendar').first().json.mailcal || {};
 const ctx = $('Load Context').first().json || {};
 let REG = []; try { REG = ($('Load Registry').first().json.workspaces) || []; } catch (e) {}
+let aws = {}; try { aws = $('Load AWS Status').first().json || {}; } catch (e) {}
 const spacesByOrg = ['freshsens','gohm','diefi'].map(o => {
   const ns = REG.filter(r => r.kind === 'clickup_space' && r.org === o).map(r => r.name);
   return ns.length ? `  ${o}: ${ns.join(' · ')}` : null;
@@ -33,6 +34,17 @@ const refStr = refBoards.map(b => {
 const mails = (arr) => (arr && arr.length) ? arr.map(e => `- *${e.subject}* — ${e.from}: ${e.snippet}`).join('\n') : '_none_';
 const evs = (arr) => (arr && arr.length) ? arr.map(e => `- ${e.start} ${e.summary}`).join('\n') : '_none_';
 const idx = taskIndex.map(t => `${t.id}: ${t.name} [${t.org}]`).join('\n');
+const ec2 = aws.ec2_summary || {}; const s3 = aws.s3_summary || {}; const iam = aws.iam_summary || {};
+const notRunning = (ec2.instances||[]).filter(i => i.state !== 'running').map(i => `${i.name||i.instance_id} (${i.state})`);
+const exposedBuckets = (s3.buckets||[]).filter(b => b.status !== 'blocked').map(b => `${b.name} [${b.status}]`);
+const flaggedUsers = (iam.users||[]).filter(u => (u.flags||[]).length).map(u => `${u.user_name}: ${(u.flags||[]).join(', ')}`);
+const awsBlock = `EC2: ${ec2.running||0}/${ec2.total||0} running` +
+  (notRunning.length ? ` — NOT running: ${notRunning.join(', ')}` : '') +
+  `\nS3: ${s3.total||0} buckets, ${exposedBuckets.length} not fully locked down` +
+  (exposedBuckets.length ? ` — ${exposedBuckets.join(', ')}` : '') +
+  `\nIAM: ${iam.total_users||0} users, ${flaggedUsers.length} flagged` +
+  (flaggedUsers.length ? `\n${flaggedUsers.map(f=>'  • '+f).join('\n')}` : '') +
+  `\n(refreshed ${aws.refreshed_at || 'unknown'})`;
 const prompt = `You are Sentinel, Cem Ayyildiz's chief-of-staff assistant. Continue the conversation and answer his latest message (or run his command). Use the prior conversation for context. Answer in the same language he used. Be specific.
 
 ═══ CONVERSATION SO FAR (oldest→newest) ═══
@@ -58,6 +70,9 @@ ${evs(mc.calFs)}
 ${evs(mc.calGohm)}
 ═══ 2026 ROADMAP ═══
 ${(ctx.roadmap || '(unavailable)').substring(0, 5000)}
+
+═══ AWS STATUS (auto-refreshed hourly) ═══
+${awsBlock}
 
 ───────────────
 DATA RULES:
