@@ -149,3 +149,14 @@ CREATE TABLE IF NOT EXISTS workspaces (
 );
 CREATE INDEX IF NOT EXISTS workspaces_cadence ON workspaces(cadence);
 CREATE INDEX IF NOT EXISTS workspaces_org ON workspaces(org);
+
+-- Latest AWS resource-status snapshot (Sentinel · AWS Status), refreshed hourly. Single
+-- always-upserted row — Chat only ever needs the current snapshot, not history.
+CREATE TABLE IF NOT EXISTS aws_status (
+  id            INT PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+  ec2_summary   JSONB,   -- {checked_at, total, running, instances:[{instance_id,name,state,type,az}]}
+  s3_summary    JSONB,   -- {checked_at, total, buckets:[{name,region,status}]}  status: blocked|exposed|unverified
+  iam_summary   JSONB,   -- {checked_at, total_users, users:[{user_name,console_access,mfa_enabled,flags}]}
+  refreshed_at  TIMESTAMPTZ DEFAULT now()
+);
+INSERT INTO aws_status (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
