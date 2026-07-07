@@ -53,6 +53,16 @@ IDs/gotchas in `SENTINEL_STATUS.md` (registry/cadence work is §9).
       wall-of-text paragraphs (Cem: "fix the format"); build-prompt.js now mandates one bullet
       per team / incident / email / meeting + a FORMAT LAW rule (≤25 words/bullet, no run-ons)
 
+### AWS resource-status awareness (2026-07-07) — see SENTINEL_STATUS §12
+- [x] **New workflow `Sentinel · AWS Status`** — hourly read-only refresh of EC2 instance
+      states, S3 public-access exposure, IAM stale-key/no-MFA flags into new `aws_status` table
+- [x] **Chat reads it as passive context** (no live AWS calls from chat messages) — verified
+      live: correctly answered "any AWS issues right now?" citing the stopped EC2 instance, both
+      exposed S3 buckets, and sevval's no-MFA+stale-key combo
+- [x] **New least-privilege IAM user `sentinel-aws-status`** — read-only, scoped to exactly the
+      3 checks above; not a reuse of `sentinel-mcp` (this session's own credential, found
+      over-privileged in the same-day ad-hoc audit — `credentials/AWS_IAM_AUDIT.md`, gitignored)
+
 ### Briefing v3 — prioritization overhaul (2026-07-02) — see SENTINEL_STATUS §10
 - [x] **🎯 YOUR DAY** — cockpit leads with Cem's personal top 3–5 actions, rubric-ranked
       (production impact → external deadline → unblocks person → 2026 goal), linked, ⏱-estimated
@@ -94,6 +104,14 @@ IDs/gotchas in `SENTINEL_STATUS.md` (registry/cadence work is §9).
 - [ ] **Remove the test webhook** (`sentinel-test-trigger-001`) once happy — open URL triggers a real run
 - [ ] **Token resilience** — graceful-degrade is in place; plan for refresh-token revocation re-auth
 - [ ] **n8n key note** — valid key is in `~/.claude.json` → `mcpServers.n8n.env` (verified 2026-07-07; the old `settings.json` mcpServers.n8n-hr location no longer exists)
+- [ ] **Scope down `sentinel-mcp`'s AWS credential** — found 2026-07-07 (`credentials/AWS_IAM_AUDIT.md`)
+      holding `IAMFullAccess`+`EC2FullAccess`+`S3FullAccess`, far broader than an audit/status
+      tool needs. Replace with a read-only policy (mirror `sentinel-aws-status-readonly`, §12).
+- [ ] **Fix live AWS findings from the 2026-07-07 audit** — `freshsens-assets` S3 bucket is
+      currently fully public (policy + disabled public-access-block); `fresh-ml-v2` has
+      public-access-block disabled too; SSH open to `0.0.0.0/0` on every EC2 security group;
+      enable MFA on `sevval`. Full detail + priority order in `credentials/AWS_IAM_AUDIT.md`
+      (gitignored — not in the repo).
 
 ---
 

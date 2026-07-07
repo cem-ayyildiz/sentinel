@@ -23,6 +23,7 @@ values live only in the n8n credential store / gitignored `credentials/`.
 | **Issue Router** | `ICQRNBVKfn5kkMGO` | webhook `sentinel-issue-router` | delegate/do_later decisions → drafted, registry-routed ClickUp tasks → Slack approval. |
 | **Chat** | `jiC77CfK4B8yDtFm` | webhook `sentinel-chat` | DM Q&A + commands ("who's doing what?", create task, comment). |
 | **ClickUp Events (ledger)** | `4kQIG4Dhb7f5edWl` | webhook `sentinel-clickup-events` | Capture status/assignee/comment changes → `clickup_events` + `clickup_comments`. |
+| **AWS Status** | `rIjAlVpCmbiNpLDH` | cron `0 * * * *` (hourly) + `sentinel-aws-status-test` | EC2/S3/IAM read-only hygiene checks → `aws_status`, read by Chat as passive context. |
 | **DB Test** | `wefU83D11JiQ44I6` | webhook `sentinel-db-test-001` | Throwaway SQL/DDL runner (set query → trigger → read execution). Not user-facing. |
 
 `<workflow>/deploy.py` (or `build.py`) rebuilds/activates a workflow via the n8n public API. Fill the
@@ -114,9 +115,27 @@ Files: `draft-prompt.js` · `post-proposals.js`.
 Ask Sentinel in the DM ("who's doing what?", "what's pending?"). A top-level DM (vs a threaded triage
 reply) is routed here by Decision Capture. `Gather Conversation → Load Registry → Gather ClickUp (live
 who's-doing-what across FS/GOHM/DIEFI; referenced boards resolved from the registry) → Load Context →
-Build Prompt → Claude → Post Answer`.
+Load AWS Status (aws_status — passive read, see AWS Status below) → Build Prompt → Claude → Post Answer`.
 Files: `gather-conversation.js` · `gather-clickup.js` · `gather-mail-calendar.js` · `build-prompt.js` ·
 `execute-action.js` · `post-answer.js`.
+**Testing gotcha**: `post-answer.js` posts live to Cem's Slack DM — disable that node before firing
+`sentinel-chat` directly, inspect the execution via the API, then re-enable it.
+
+## AWS Status (`sentinel-aws-status/`)
+Hourly read-only refresh of AWS resource hygiene into `aws_status` (single upserted row), which Chat
+reads as passive context — no live AWS calls triggered by chat messages. Three parallel branches:
+EC2 instance states (`DescribeInstances`), S3 public-access exposure (`ListBuckets` +
+per-bucket `GetPublicAccessBlock`), IAM hygiene (`ListUsers` + per-user `ListAccessKeys`/
+`ListMFADevices`/`GetLoginProfile` → stale-key/no-MFA flags). Uses n8n's native AWS-signed HTTP
+Request node (`predefinedCredentialType: "aws"`) — **the one exception to this repo's usual
+"native credential nodes proved unreliable" rule** (see top of this file); it worked reliably here,
+unlike the ClickUp/Slack integrations. Two n8n AWS credentials exist on the same read-only IAM user
+(`sentinel-aws-status`): a `eu-central-1` one for EC2/S3, and a `us-east-1` "(Global)" one required
+for IAM (true-global services need `us-east-1` signing regardless of the credential's region — see
+`SENTINEL_STATUS.md` §12 for the full list of SigV4/n8n gotchas hit building this).
+Files: `build.py` · `extract-ec2.js` · `extract-bucket-names.js` · `flag-bucket.js` ·
+`aggregate-s3.js` · `extract-iam-users.js` · `compute-key-staleness.js` · `flag-iam-user.js` ·
+`aggregate-iam.js`.
 
 ## ClickUp Events — the ledger (`sentinel-clickup-events/`)
 ClickUp team webhook (`taskStatusUpdated` + `taskAssigneeUpdated` + `taskCommentPosted`) → `Parse & Enrich`

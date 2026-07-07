@@ -2,7 +2,7 @@
 
 > Single source of truth for picking up work on **Sentinel**, Cem Ayyildiz's personal AI
 > chief-of-staff. Read this first. Complements `SENTINEL_DESIGN.md` (architecture rationale)
-> and `CLAUDE.md` (deploy/test working agreement). Last updated: 2026-07-07 (§11 = format hardening).
+> and `CLAUDE.md` (deploy/test working agreement). Last updated: 2026-07-07 (§12 = AWS status).
 
 ---
 
@@ -13,7 +13,8 @@ Sentinel is a set of **n8n workflows** (host: `https://flow.gohm.tech`) backed b
 1. **Cut noise** — daily briefing, learning-gated triage queue, mail cleaning.
 2. **Team roadmap reports** — weekly 2026-goals-vs-ClickUp report.
 3. **Create issues with approval** — Slack-approved ClickUp tasks.
-Plus a **Chat** assistant (DM it questions / commands).
+Plus a **Chat** assistant (DM it questions / commands), which as of 2026-07-07 also knows
+hourly-refreshed **AWS resource status** (EC2/S3/IAM hygiene checks — see §12).
 
 **Active focus (story points / agent throughput):**
 - ✅ Built: `clickup_events` ledger + ClickUp webhook capturing status/assignee/comment events live.
@@ -148,6 +149,7 @@ Plus a **Chat** assistant (DM it questions / commands).
 | **Issue Router (DRY RUN)** | `LzUyFvtfzTgj7wW9` | webhook `sentinel-router-test` | Safe simulation of the above. Scaffolding. |
 | **Chat** | `jiC77CfK4B8yDtFm` | webhook `sentinel-chat` | DM Q&A + commands. See §5. |
 | **ClickUp Events (ledger)** | `4kQIG4Dhb7f5edWl` | webhook `sentinel-clickup-events` | Captures status/assignee/comment changes → `clickup_events`. Agent detection + SP auto-estimate. See §6. |
+| **AWS Status** | `rIjAlVpCmbiNpLDH` | cron `0 * * * *` (hourly) + webhook `sentinel-aws-status-test` | Refreshes EC2/S3/IAM resource-status checks into `aws_status`, read by Chat. See §12. |
 | **DB Test** | `wefU83D11JiQ44I6` | webhook `sentinel-db-test-001` | Throwaway SQL/DDL runner utility. Not user-facing. |
 
 Source for each lives under `workflows/sentinel-*/` (sanitized); catalog: `workflows/README.md`.
@@ -156,9 +158,10 @@ Source for each lives under `workflows/sentinel-*/` (sanitized); catalog: `workf
 
 ## 5. Chat workflow (`jiC77CfK4B8yDtFm`) — current behavior
 
-Node chain: `Chat In` → `Gather Conversation` (last ~14 msgs, thread or DM) → `Gather ClickUp`
-→ `Gather Mail & Calendar` → `Load Context` (Postgres: roadmap + recent decisions/actions) →
-`Build Prompt` → `Chat LLM` (Claude CLI) → `Execute Action` → `Post Answer`.
+Node chain: `Chat In` → `Gather Conversation` (last ~14 msgs, thread or DM) → `Load Registry` →
+`Gather ClickUp` → `Gather Mail & Calendar` → `Load Context` (Postgres: roadmap + recent
+decisions/actions) → `Load AWS Status` (Postgres: `aws_status`, see §12) → `Build Prompt` →
+`Chat LLM` (Claude CLI) → `Execute Action` → `Post Answer`.
 
 Capabilities (all built + verified):
 - **Accurate board counts** — "Gather ClickUp" pulls each org's **active sprint** board fully
@@ -170,7 +173,14 @@ Capabilities (all built + verified):
   points) as a REFERENCED BOARD. **Never guesses a comment target** — asks if the board isn't loaded.
 - **Commands**: create task (active sprint, **multiple assignees on ONE task**), comment on a task
   (real task_id only), multi-action in one message.
+- **AWS resource status** (2026-07-07) — reads the hourly-refreshed `aws_status` row (EC2
+  instance states, S3 public-access exposure, IAM stale-key/no-MFA flags) as passive context;
+  no live AWS calls from Chat itself. See §12.
 - `executionTimeout` raised to 220s (heavier gathers).
+- **Safe-testing Chat directly**: `Post Answer` posts live to Cem's Slack DM
+  (`chat.postMessage`, channel `D0BBRKKPGUE`) — same gotcha as Daily Briefing's `Send to Cem`.
+  Disable that node before firing `sentinel-chat` directly for testing, inspect
+  `Build Prompt`/`Chat LLM` output via the executions API, then re-enable it.
 
 ---
 
@@ -462,3 +472,89 @@ untouched (was already fine). Deployed via full-overwrite PUT of the Build Analy
 Also fixed while diagnosing "no report this morning" (it HAD been delivered at 05:35 — three
 Slack parts, ok:true; the ill-formatted screenshot was Friday's briefing): stale n8n API-key
 docs — the working `N8N_API_KEY` is in `~/.claude.json → mcpServers.n8n.env` (§2 updated).
+
+---
+
+## 12. AWS resource-status awareness (built 2026-07-07)
+
+Trigger: Cem — "add the ability of getting data from aws on sentinel chat", following an
+ad-hoc IAM/resource audit that session (`credentials/AWS_IAM_AUDIT.md`, gitignored — real
+account structure/keys, not for the repo) which found live issues worth surfacing daily:
+a stopped EC2 instance, two publicly-exposed S3 buckets, several stale IAM access keys, one
+console user (`sevval`) with no MFA.
+
+**Design: scheduled refresh into Postgres, not a live "call AWS" chat action.** Chat has no
+native tool-calling (`Chat LLM` is a `chainLlm` node, not an Agent node) — the only existing
+pattern is `execute-action.js`'s text-convention dispatch (fenced json blocks →
+`create_task`/`add_comment`). A live AWS-query action would mean untrusted DM input
+indirectly triggers AWS calls; a scheduled Postgres refresh keeps Chat's AWS awareness
+strictly read-only and bounded to 3 fixed checks (exception-based, per CLAUDE.md's design
+principles) — matches the `roadmap`/`workspaces` pattern Chat already uses via
+`Load Context`/`Load Registry`.
+
+**New workflow: `Sentinel · AWS Status` (`rIjAlVpCmbiNpLDH`)** — cron `0 * * * *` (hourly) +
+test webhook `sentinel-aws-status-test`, source in `workflows/sentinel-aws-status/`
+(`build.py` + Code-node `.js` files, no secrets — all auth goes through n8n's native AWS
+credential, not embedded keys). Three parallel branches all feeding one upsert into new table
+`aws_status` (single row, `id=1`, mirrors the `roadmap`/`decision_profile` pattern):
+- **EC2** — `DescribeInstances` → n8n's `xml` node → Code extracts instance id/Name-tag/state.
+- **S3** — `ListBuckets` → per-bucket `GetPublicAccessBlock` (runs once per item automatically
+  via n8n's standard per-item fan-out for a regular node — **no `splitInBatches` needed** for
+  ~10 buckets) → regex over the raw response text (not XML node — errored items have no
+  parseable body) → classifies `blocked`/`exposed`/`unverified`.
+- **IAM** — `ListUsers` → per-user `ListAccessKeys` (>180d = `stale_key`) + `ListMFADevices` +
+  `GetLoginProfile` (404 `NoSuchEntity` = no console access — expected for most service
+  accounts, not a failure) → flags `no_mfa` (console access + zero MFA devices) / `stale_key`.
+
+**New least-privilege IAM user `sentinel-aws-status`** (policy `sentinel-aws-status-readonly`):
+`ec2:DescribeInstances`, `s3:ListAllMyBuckets`, `s3:GetBucketLocation`,
+`s3:GetBucketPublicAccessBlock`, `iam:ListUsers`, `iam:ListAccessKeys`, `iam:ListMFADevices`,
+`iam:GetLoginProfile`, `sts:GetCallerIdentity` — no write/delete anywhere. Deliberately NOT
+reusing `sentinel-mcp` (this session's own AWS credential), which the same-day audit found
+has `IAMFullAccess`+`EC2FullAccess`+`S3FullAccess` — far too broad for a credential a chatbot
+context indirectly depends on.
+
+**Gotchas learned (n8n + AWS SigV4, don't re-derive):**
+- n8n's HTTP Request node supports AWS SigV4 signing natively via
+  `authentication: "predefinedCredentialType"`, `nodeCredentialType: "aws"` — no custom crypto
+  needed. **Two n8n AWS credentials exist**, both on the `sentinel-aws-status` IAM user:
+  `Sentinel AWS Status` (id `ZTG1FO0pQaPremPm`, region `eu-central-1`, used for EC2 + regional
+  S3 endpoints) and `Sentinel AWS Status (Global)` (id `UbIpNHzRRRCB6Zuc`, region `us-east-1`,
+  used for IAM) — **IAM (and any true-global service) needs `us-east-1` signing regardless of
+  the credential's configured region**; using the eu-central-1 credential against
+  `iam.amazonaws.com` gets a 403 `SignatureDoesNotMatch`. One credential can't serve both.
+- Query-string params via the HTTP node's `sendQuery`/`queryParameters` fields got silently
+  dropped before signing (AWS returned `MissingAction` even though the params showed in the
+  node's own request config) — **embed the query string directly in the `url` field instead**.
+- The generic global `s3.amazonaws.com` endpoint needs `us-east-1` signing; use the regional
+  endpoint (`s3.eu-central-1.amazonaws.com`) to match a eu-central-1-configured credential.
+- EC2/S3 Query APIs return **XML** (parse with n8n's native `xml` node — `dataPropertyName:
+  "data"`); xml2js collapses a single child to a plain object but keeps multiple children as
+  an array (`arr = x => Array.isArray(x) ? x : (x ? [x] : [])` handles both). **IAM's Query
+  API instead honors the default `Accept` header and returns JSON directly** — no XML node
+  needed for that branch, just `JSON.parse($json.data)`.
+- Code nodes default to "run once for all items" mode — `$json`/`.item` inside one do **not**
+  give per-item semantics; a Code node fed N items from an upstream per-item fan-out must
+  explicitly `$input.all()` and `.map()` over them (confirmed live: an initial per-item-style
+  Code node collapsed 10 bucket results down to 1 until rewritten this way). Regular (non-Code)
+  nodes like `httpRequest` DO get correct per-item expression evaluation automatically, and
+  `$('NodeName').item` correctly cross-references an earlier same-branch node's paired item.
+- `onError: "continueRegularOutput"` (+ legacy `continueOnFail: true` for safety) on a per-item
+  HTTP node lets expected-to-fail items (404s, region mismatches) through as `{error: {...}}`
+  without killing the other items in the same fan-out — used for the S3 PAB check and
+  `GetLoginProfile`.
+- The n8n public API's credential-creation schema is discoverable via
+  `GET /api/v1/credentials/schema/<type>` — used this to get the exact `aws` credential shape
+  rather than guessing (its conditional-required fields, e.g. `sessionToken` only when
+  `temporaryCredentials:true`, mean absent-vs-empty-string matters).
+
+Verified end-to-end (2026-07-07): fired the test webhook after each phase, confirmed
+`aws_status` via direct `SELECT`, then a disabled-`Post Answer` Chat test asking "any AWS
+issues right now?" — got back an accurate answer correctly citing the stopped `kubernetes`
+instance, both exposed buckets, and sevval's no-MFA+stale-key combo as the top risk.
+
+**Not built / follow-ups:** RDS/Lambda/ECR/Secrets Manager are not checked (`sentinel-mcp`
+lacks those permissions and it wasn't in scope); the `vantage-cur-...` bucket (us-east-1) is
+always `unverified` rather than truly checked, since its region differs from the regional S3
+credential/endpoint used for the other 9 buckets — low priority since it's an AWS-managed
+Cost & Usage Report bucket, not user data.
